@@ -1,0 +1,364 @@
+# ============================================================================
+# IIStudio — Docker Compose Stack
+# Полный стек: IIStudio + PostgreSQL + Redis + Nginx + Monitoring
+# ============================================================================
+#
+# ИСПОЛЬЗОВАНИЕ:
+#   docker-compose up -d              — запустить всё
+#   docker-compose up -d iistudio     — только IIStudio (БД должна быть уже)
+#   docker-compose logs -f iistudio   — логи
+#   docker-compose down               — остановить
+#   docker-compose down -v            — остановить + удалить тома
+#
+# ТРЕБОВАНИЯ:
+#   1. Заполнить .env (cp .env.example .env && nano .env)
+#   2. Добавить прокси в proxy.txt
+#   3. docker-compose up -d
+# ============================================================================
+
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# СЕТИ
+# ─────────────────────────────────────────────────────────────────────────────
+networks:
+  iistudio-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ТОМА (персистентные данные)
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  iistudio_logs:
+    driver: local
+  nginx_logs:
+    driver: local
+
+# ─────────────────────────────────────────────────────────────────────────────
+# СЕРВИСЫ
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # POSTGRESQL — основная база данных
+  # ──────────────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: iistudio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-iistudio}
+      POSTGRES_USER: ${POSTGRES_USER:-iistudio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iistudio_secret_pass}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      iistudio-net:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-iistudio} -d ${POSTGRES_DB:-iistudio}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # REDIS — кэш, очереди, сессии
+  # ──────────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: iistudio-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --requirepass ${REDIS_PASSWORD:-redis_secret_pass}
+    volumes:
+      - redis_data:/data
+    networks:
+      iistudio-net:
+        ipv4_address: 172.20.0.11
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret_pass}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # MTG — MTProto прокси клиент (туннель)
+  # Поднимает локальный SOCKS5 на порту 1080 через MTProto
+  # ──────────────────────────────────────────────────────────────────────────
+  mtproto-tunnel:
+    image: nineseconds/mtg:2
+    container_name: iistudio-mtproto
+    restart: unless-stopped
+    command: >
+      run
+      --bind-to 0.0.0.0:1080
+      ${MTG_PROXY_HOST:-tg.atomic-vpn.com}:${MTG_PROXY_PORT:-443}
+      ${MTG_PROXY_SECRET:-dd3f087f3f403449a2a9446de22b5bc3d1}
+    networks:
+      iistudio-net:
+        ipv4_address: 172.20.0.12
+    ports:
+      - "1080:1080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:1080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # IISTUDIO — основной сервис
+  # ──────────────────────────────────────────────────────────────────────────
+  iistudio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: iistudio-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mtproto-tunnel:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      # База данных (переопределяем для Docker сети)
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-iistudio}:${POSTGRES_PASSWORD:-iistudio_secret_pass}@postgres:5432/${POSTGRES_DB:-iistudio}
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret_pass}@redis:6379/0
+      # MTProto туннель (локальный SOCKS5 от mtg контейнера)
+      MTPROTO_SOCKS5_HOST: mtproto-tunnel
+      MTPROTO_SOCKS5_PORT: 1080
+      # Прокси файл
+      PROXY_FILE: /app/proxy.txt
+      # Окружение
+      IISTUDIO_ENV: production
+      BROWSER_HEADLESS: "true"
+      # Playwright путь к Chromium
+      PLAYWRIGHT_BROWSERS_PATH: /app/.playwright
+    volumes:
+      # Прокси список (read-only — менять вне контейнера)
+      - ./proxy.txt:/app/proxy.txt:ro
+      # Системный промт (read-only)
+      - ./prompt.txt:/app/prompt.txt:ro
+      # Логи (персистентные)
+      - iistudio_logs:/app/logs
+      # Скриншоты для диагностики
+      - ./screenshots:/app/screenshots
+    networks:
+      iistudio-net:
+        ipv4_address: 172.20.0.20
+    ports:
+      - "${API_PORT:-8080}:8080"
+      - "${METRICS_PORT:-9090}:9090"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    # Ограничения ресурсов
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    # Настройки безопасности
+    security_opt:
+      - no-new-privileges:true
+    # Для Chromium (шаред память)
+    shm_size: '2gb'
+    # Tmpfs для временных файлов браузера
+    tmpfs:
+      - /tmp:size=1g
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # NGINX — реверс-прокси, SSL терминация, балансировка
+  # ──────────────────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: iistudio-nginx
+    restart: unless-stopped
+    depends_on:
+      - iistudio
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      iistudio-net:
+        ipv4_address: 172.20.0.30
+    ports:
+      - "80:80"
+      - "443:443"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # PROXY-ROTATOR — демон ротации прокси
+  # Следит за proxy.txt и автоматически переключает прокси при сбоях
+  # ──────────────────────────────────────────────────────────────────────────
+  proxy-rotator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iistudio-proxy-rotator
+    restart: unless-stopped
+    command: ["python", "-m", "proxy.rotator_daemon"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-iistudio}:${POSTGRES_PASSWORD:-iistudio_secret_pass}@postgres:5432/${POSTGRES_DB:-iistudio}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret_pass}@redis:6379/0
+      PROXY_FILE: /app/proxy.txt
+      PROXY_CHECK_INTERVAL: ${PROXY_CHECK_INTERVAL:-60}
+    volumes:
+      - ./proxy.txt:/app/proxy.txt:ro
+      - iistudio_logs:/app/logs
+    networks:
+      iistudio-net:
+        ipv4_address: 172.20.0.21
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # CELERY WORKER — обработка фоновых задач (видео, изображения)
+  # ──────────────────────────────────────────────────────────────────────────
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iistudio-worker
+    restart: unless-stopped
+    command: ["celery", "-A", "queue.celery_app", "worker",
+              "--loglevel=info", "--concurrency=4",
+              "--queues=default,high_priority,media"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-iistudio}:${POSTGRES_PASSWORD:-iistudio_secret_pass}@postgres:5432/${POSTGRES_DB:-iistudio}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret_pass}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-redis_secret_pass}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-redis_secret_pass}@redis:6379/2
+    volumes:
+      - iistudio_logs:/app/logs
+      - ./screenshots:/app/screenshots
+    networks:
+      iistudio-net:
+        ipv4_address: 172.20.0.22
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+    shm_size: '1gb'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # CELERY BEAT — планировщик периодических задач
+  # ──────────────────────────────────────────────────────────────────────────
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iistudio-beat
+    restart: unless-stopped
+    command: ["celery", "-A", "queue.celery_app", "beat",
+              "--loglevel=info", "--scheduler=celery.beat:PersistentScheduler"]
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret_pass}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-redis_secret_pass}@redis:6379/1
+    volumes:
+      - iistudio_logs:/app/logs
+    networks:
+      iistudio-net:
+        ipv4_address: 172.20.0.23
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+

@@ -1,0 +1,26 @@
+# СЕКРЕТЫ — никогда не коммить!
+.env
+proxy.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# Playwright
+.playwright/
+playwright-report/
+
+# Логи и временные файлы
+logs/*.log
+screenshots/
+output/
+*.bak
+*.tmp
+.DS_Store
+
+# Docker
+docker/nginx/ssl/

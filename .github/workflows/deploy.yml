@@ -1,0 +1,23 @@
+name: Deploy to Amsterdam
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.AMSTERDAM_HOST }}
+          username: ${{ secrets.AMSTERDAM_USER }}
+          key: ${{ secrets.AMSTERDAM_SSH_KEY }}
+          script: |
+            cd /opt/iistudio
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
+            pm2 restart iistudio
+            echo "✅ Deploy completed"
