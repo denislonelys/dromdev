@@ -3146,3 +3146,539 @@ orproject.ru — это веб-сайт который служит портал
     ◈ arena.ai | orproject.ru | Amsterdam | proxy.txt | iis ◈
     Строк: ~2800+ | Токен Admin: denialonelys-dev-87169
 ================================================================================
+
+================================================================================
+РАЗДЕЛ 28: ПОЛНЫЙ СПИСОК ВСЕХ СЕЛЕКТОРОВ ARENA.AI
+================================================================================
+
+Это полный справочник CSS и XPath селекторов для всех элементов arena.ai.
+При каждом действии пробовать все варианты по очереди сверху вниз.
+
+28.1 СЕЛЕКТОРЫ НАВИГАЦИИ (режимы Text/Images/Video/Coding)
+────────────────────────────────────────────────────────────────────────────────
+
+  Поиск вкладки по тексту (наиболее надёжный способ):
+    button:has-text("Text")
+    button:has-text("Images")
+    button:has-text("Video")
+    button:has-text("Coding")
+
+  По data-атрибутам:
+    [data-tab="text"], [data-tab="images"], [data-tab="video"], [data-tab="coding"]
+    [data-mode="text"], [data-mode="images"], [data-mode="video"], [data-mode="coding"]
+    [data-value="text"], [data-value="images"]
+
+  По ARIA ролям:
+    [role="tab"]:has-text("Text")
+    [role="tab"]:has-text("Images")
+    [aria-label="Text mode"]
+    [aria-label="Images mode"]
+
+  По классам:
+    .tab-text, .tab-images, .tab-video, .tab-coding
+    .nav-tab:has-text("Text")
+    .mode-button:has-text("Video")
+
+  По ссылкам:
+    a[href*="/text"], a[href*="/images"], a[href*="/video"], a[href*="/coding"]
+    a:has-text("Text"), a:has-text("Images")
+
+  XPath запасной вариант:
+    //button[contains(text(), 'Text')]
+    //a[contains(text(), 'Images')]
+    //div[@role='tab'][contains(., 'Video')]
+
+  Определить активную вкладку:
+    [aria-selected="true"]
+    .active, .selected, .current
+    [data-active="true"]
+
+28.2 СЕЛЕКТОРЫ ВЫБОРА МОДЕЛИ
+────────────────────────────────────────────────────────────────────────────────
+
+  Найти триггер (кнопку открытия списка моделей):
+    button.model-selector
+    .model-picker button
+    [data-testid="model-select"]
+    [data-testid="model-picker"]
+    [aria-label*="model"]
+    [aria-label*="Model"]
+    button:has-text("GPT")
+    button:has-text("Claude")
+    button:has-text("Gemini")
+    .current-model
+    .selected-model
+    [class*="model"][class*="button"]
+    [class*="model"][class*="trigger"]
+
+  HTML select элемент:
+    select[name="model"]
+    select[id*="model"]
+    select[class*="model"]
+
+  Список моделей после открытия:
+    [role="listbox"]
+    [role="option"]
+    .model-option
+    .model-item
+    .dropdown-item
+    li[data-model]
+    [data-value*="gpt"]
+    [data-value*="claude"]
+    [data-value*="gemini"]
+    ul.models-list li
+    div.model-card
+
+  XPath для поиска модели по имени:
+    //[role='option'][contains(., 'GPT-4')]
+    //li[contains(., 'Claude')]
+    //div[contains(@class, 'model')][contains(., 'Gemini')]
+
+28.3 СЕЛЕКТОРЫ ПОЛЯ ВВОДА
+────────────────────────────────────────────────────────────────────────────────
+
+  textarea[placeholder]
+  textarea[placeholder*="message"]
+  textarea[placeholder*="Message"]
+  textarea[placeholder*="Ask"]
+  textarea[placeholder*="Type"]
+  textarea[placeholder*="Enter"]
+  textarea[placeholder*="Send"]
+  #message-input
+  #chat-input
+  #prompt-input
+  [data-testid="chat-input"]
+  [data-testid="message-input"]
+  [data-testid="prompt-input"]
+  [data-cy="chat-input"]
+  .chat-input textarea
+  .message-input textarea
+  .prompt-input textarea
+  .chat-textarea
+  .message-textarea
+  form textarea
+  [role="textbox"]
+  [contenteditable="true"]
+  [contenteditable="plaintext-only"]
+  input[type="text"][placeholder*="message"]
+  .ProseMirror                        ← редактор на основе ProseMirror
+  .ql-editor                          ← Quill редактор
+
+28.4 СЕЛЕКТОРЫ КНОПКИ ОТПРАВКИ
+────────────────────────────────────────────────────────────────────────────────
+
+  button[type="submit"]
+  button[type="submit"]:not([disabled])
+  .send-button
+  .send-btn
+  .submit-button
+  .chat-submit
+  [data-testid="send-button"]
+  [data-testid="send-btn"]
+  [data-testid="submit-btn"]
+  [aria-label="Send"]
+  [aria-label="Send message"]
+  [aria-label="Submit"]
+  button:has-text("Send")
+  button:has-text("Submit")
+  button svg[data-icon="send"]         ← иконка send внутри кнопки
+  form button:last-child               ← последняя кнопка в форме
+  textarea + button                    ← кнопка сразу после textarea
+  .input-area button:last-of-type
+
+28.5 СЕЛЕКТОРЫ ОТВЕТА AI
+────────────────────────────────────────────────────────────────────────────────
+
+  Найти ответ AI (последнее сообщение от модели):
+    .assistant-message
+    .ai-message
+    .model-response
+    .bot-message
+    [data-role="assistant"]
+    [data-message-role="assistant"]
+    [data-author="assistant"]
+    .message.assistant
+    .message.bot
+    .chat-message:last-child
+    [class*="assistant"][class*="message"]
+    [class*="response"][class*="text"]
+    .response-content
+    .completion-text
+    .output-text
+
+  Получить текст ответа:
+    Из element.inner_text() — без HTML тегов
+    Или element.text_content() — весь текстовый контент
+
+  Найти код внутри ответа:
+    pre code
+    code.language-python
+    code.language-javascript
+    .code-block
+    .highlight pre
+    [class*="language-"]
+    .hljs                               ← highlight.js
+    .prism-code                         ← Prism.js
+
+28.6 ИНДИКАТОРЫ ЗАГРУЗКИ (ответ ещё генерируется)
+────────────────────────────────────────────────────────────────────────────────
+
+  .loading
+  .loading-indicator
+  .thinking
+  .thinking-indicator
+  .generating
+  .spinner
+  [data-loading="true"]
+  [aria-busy="true"]
+  .typing-indicator
+  .dots-animation
+  .blinking-cursor
+  [class*="loading"]
+  [class*="thinking"]
+  [class*="generating"]
+  button[disabled]                      ← кнопка отправки заблокирована
+  .send-button[disabled]
+
+================================================================================
+РАЗДЕЛ 29: ОБРАБОТКА ВСЕХ EDGE CASES
+================================================================================
+
+29.1 ЧТО ДЕЛАТЬ ЕСЛИ ARENA.AI ОБНОВИЛ ИНТЕРФЕЙС
+────────────────────────────────────────────────────────────────────────────────
+
+  Признаки что интерфейс изменился:
+    - Ни один из известных селекторов не работает
+    - Страница загрузилась, но элементы не находятся
+    - Действие (клик, ввод) не даёт эффекта
+
+  Алгоритм адаптации:
+
+  ШАГ 1: Сделать скриншот
+    await page.screenshot(path='screenshots/arena_changed.png', full_page=True)
+
+  ШАГ 2: Получить HTML страницы
+    html = await page.content()
+    Сохранить в: logs/arena_html_TIMESTAMP.html
+
+  ШАГ 3: Поиск textarea методом грубой силы
+    all_textareas = await page.query_selector_all('textarea, [contenteditable]')
+    Выбрать видимый и активный.
+
+  ШАГ 4: Поиск кнопок рядом с textarea
+    parent = textarea.evaluate('el => el.closest("form, div, section")')
+    buttons = parent.query_selector_all('button')
+    Последняя видимая кнопка — скорее всего отправка.
+
+  ШАГ 5: Попробовать Enter для отправки вместо кнопки
+    await textarea.press('Enter')
+
+  ШАГ 6: Логировать новые селекторы которые сработали
+    Записать в logs/new_selectors.json для обновления кода.
+
+  ШАГ 7: Уведомить пользователя
+    "⚠️ Интерфейс arena.ai обновился. Адаптируюсь к новому интерфейсу..."
+    Если адаптация не удалась: "❌ Не удалось адаптироваться. Сделан скриншот: screenshots/arena_changed.png"
+
+29.2 ARENA.AI ТРЕБУЕТ АВТОРИЗАЦИЮ
+────────────────────────────────────────────────────────────────────────────────
+
+  Признаки: редирект на /login или /signin, форма входа на странице.
+
+  Если в .env указаны ARENA_EMAIL и ARENA_PASSWORD:
+    Найти поле email: input[type="email"], input[name="email"]
+    Найти поле пароля: input[type="password"]
+    Заполнить и войти.
+    Сохранить куки для последующих сессий.
+
+  Если данных нет:
+    Сообщить: "⚠️ arena.ai требует авторизацию. Добавь ARENA_EMAIL и ARENA_PASSWORD в .env"
+
+29.3 ARENA.AI ВЕРНУЛ ОШИБКУ В ОТВЕТЕ
+────────────────────────────────────────────────────────────────────────────────
+
+  Ответ содержит текст об ошибке:
+    "Something went wrong"
+    "Error generating response"
+    "Model unavailable"
+    "Rate limit exceeded"
+    "This model is not available"
+
+  Действия:
+    Логировать ошибку.
+    Если "Rate limit" → подождать 30 секунд и повторить.
+    Если "Model unavailable" → переключить на другую модель того же типа.
+    Если "Something went wrong" → попробовать ещё раз (иногда помогает).
+    Если ошибка повторяется 3 раза → уведомить пользователя.
+
+29.4 ОЧЕНЬ ДЛИННЫЙ ЗАПРОС ПОЛЬЗОВАТЕЛЯ
+────────────────────────────────────────────────────────────────────────────────
+
+  Если запрос > 10,000 символов:
+    Предупредить: "📏 Длинный запрос: ~X токенов"
+    Автоматически выбрать модель с большим контекстом (Gemini 1.5 Pro).
+    Ввод большого текста делать медленнее (delay=5 мс вместо 25 мс).
+    Или использовать fill() вместо type() для скорости.
+
+  Если textarea не принимает такой объём:
+    Попробовать вставить через clipboard:
+      await page.evaluate(f'navigator.clipboard.writeText(`{text}`)')
+      await textarea.press('Control+v')
+
+29.5 МЕДЛЕННЫЙ ИНТЕРНЕТ / ВЫСОКАЯ LATENCY ПРОКСИ
+────────────────────────────────────────────────────────────────────────────────
+
+  Если latency прокси > 500 мс:
+    Увеличить все таймауты в 2 раза.
+    wait_for_load_state timeout: 60000 → 120000
+    Сообщить: "⚠️ Медленное соединение (500мс). Ответы могут занимать больше времени."
+
+  Если все прокси медленные (> 300 мс):
+    Попробовать прямое соединение без прокси.
+    Если arena.ai доступен напрямую — использовать без прокси.
+
+================================================================================
+РАЗДЕЛ 30: ФОРМАТЫ ДАННЫХ И ВНУТРЕННИЕ СТРУКТУРЫ
+================================================================================
+
+30.1 СТРУКТУРА ЗАПРОСА (внутри агента)
+────────────────────────────────────────────────────────────────────────────────
+
+  Каждый запрос к arena.ai представлен как объект:
+
+  {
+    "id": "req_1711234567_abc123",      ← уникальный ID запроса
+    "timestamp": "2024-01-15T10:30:00Z",
+    "user_token": "denialonelys-dev-87169",
+    "user_plan": "admin",
+
+    "request": {
+      "message": "напиши hello world на Python",
+      "mode": "coding",                  ← text / images / video / coding
+      "model": "claude-3.5-sonnet",
+      "conversation_id": "conv_abc123",  ← ID текущего диалога (null если новый)
+      "stream": true
+    },
+
+    "execution": {
+      "proxy_used": "tg.atomic-vpn.com:443",
+      "proxy_latency_ms": 45,
+      "mode_switched": false,            ← пришлось ли менять режим
+      "model_switched": false,           ← пришлось ли менять модель
+      "send_method": "button",           ← button / enter / ctrl+enter
+      "selector_used": "button[type='submit']"
+    },
+
+    "response": {
+      "text": "вот hello world:\n```python\nprint('Hello!')\n```",
+      "images": [],
+      "code": ["print('Hello!')"],
+      "raw_html": null                   ← сохранять только при debug режиме
+    },
+
+    "billing": {
+      "input_tokens": 15,
+      "output_tokens": 85,
+      "total_tokens": 100,
+      "price_per_1k": 0.27,
+      "amount_charged": 0.027,
+      "balance_before": null,            ← null для Admin
+      "balance_after": null,
+      "unlimited": true
+    },
+
+    "timing": {
+      "started_at": "2024-01-15T10:30:00.000Z",
+      "first_token_at": "2024-01-15T10:30:01.500Z",
+      "completed_at": "2024-01-15T10:30:03.200Z",
+      "total_ms": 3200,
+      "ttft_ms": 1500                    ← Time To First Token
+    },
+
+    "status": "completed"                ← pending / running / completed / failed
+  }
+
+30.2 КОНФИГУРАЦИОННЫЙ ФАЙЛ (~/.dromdev/config.json)
+────────────────────────────────────────────────────────────────────────────────
+
+  {
+    "version": "3.0.0",
+    "created_at": "2024-01-15T10:00:00Z",
+    "updated_at": "2024-01-15T10:30:00Z",
+
+    "auth": {
+      "token": "denialonelys-dev-87169",
+      "email": "denislonelys.business@fmail.com",
+      "plan": "admin",
+      "token_verified_at": "2024-01-15T10:00:00Z"
+    },
+
+    "server": {
+      "api_url": "https://api.orproject.ru",
+      "billing_url": "https://orproject.ru/api/v1/billing",
+      "timeout_seconds": 120
+    },
+
+    "arena": {
+      "base_url": "https://arena.ai",
+      "default_mode": "text",
+      "default_model": "gpt-4o",
+      "session_file": "~/.dromdev/arena_session.json"
+    },
+
+    "browser": {
+      "headless": true,
+      "timeout_ms": 60000,
+      "viewport_width": 1920,
+      "viewport_height": 1080,
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    },
+
+    "proxy": {
+      "file": "~/.dromdev/proxy.txt",
+      "auto_switch": true,
+      "check_interval_seconds": 300,
+      "max_requests_per_proxy": 50,
+      "current_proxy_index": 0
+    },
+
+    "ui": {
+      "language": "ru",
+      "stream": true,
+      "show_token_count": true,
+      "show_balance_after": true,
+      "show_latency": true,
+      "theme": "dark"
+    },
+
+    "limits": {
+      "max_message_length": 50000,
+      "max_history_messages": 50,
+      "request_timeout_seconds": 120,
+      "max_retries": 3
+    }
+  }
+
+30.3 ФОРМАТ ИСТОРИИ СЕССИИ
+────────────────────────────────────────────────────────────────────────────────
+
+  Хранится в: ~/.dromdev/history/SESSION_ID.jsonl
+  Формат JSONL — каждая строка отдельный JSON объект.
+
+  Пример записи:
+  {"ts":"2024-01-15T10:30:00Z","mode":"coding","model":"claude-3.5-sonnet","prompt":"hello world на Python","response":"```python\nprint('Hello!')\n```","tokens":100,"charged":0.027}
+  {"ts":"2024-01-15T10:31:00Z","mode":"text","model":"gpt-4o","prompt":"объясни recursion","response":"Рекурсия — это...","tokens":850,"charged":0.0}
+
+================================================================================
+РАЗДЕЛ 31: ОТВЕТЫ НА ЧАСТЫЕ ВОПРОСЫ (FAQ)
+================================================================================
+
+  Q: Почему iis не работает без прокси?
+  A: Arena.ai может быть заблокирован в некоторых странах/сетях.
+     Добавь MTProto прокси в proxy.txt. Получить бесплатно: @MTProxyBot в Telegram.
+
+  Q: Как получить API токен?
+  A: Зарегистрируйся на orproject.ru. Токен будет в личном кабинете сразу после регистрации.
+
+  Q: Что значит "Admin" тариф?
+  A: Безлимитные запросы, $0 за каждый. Только для администраторов системы.
+
+  Q: Почему списалась неправильная сумма?
+  A: Сумма = (входящие + исходящие токены) / 1000 * цена_модели.
+     Русский текст считается по ~2 символа на токен, английский ~4.
+
+  Q: Можно ли использовать без интернета?
+  A: Нет. DromDev требует подключения к arena.ai и orproject.ru.
+
+  Q: Как поменять модель по умолчанию?
+  A: Отредактировать ~/.dromdev/config.json поле arena.default_model
+     Или: iis --model "claude-3.5-sonnet" (сохранится для следующих запросов)
+
+  Q: Работает ли на Raspberry Pi?
+  A: Да, если установлен Python 3.11+ и есть интернет.
+     Playwright на ARM может потребовать дополнительных шагов.
+
+  Q: Как сгенерировать новый API токен?
+  A: orproject.ru → личный кабинет → раздел "Токен" → "Сгенерировать новый".
+     Старый токен станет недействительным немедленно.
+
+  Q: Что будет если баланс закончился во время запроса?
+  A: Запрос выполнится (arena.ai уже ответил), деньги спишутся.
+     Если баланс уйдёт в минус — следующий запрос заблокируется.
+
+  Q: Как посмотреть историю расходов?
+  A: Команда: iis --history
+     Или на сайте: orproject.ru/billing
+
+  Q: Поддерживается ли несколько аккаунтов?
+  A: Пока нет. Один токен = один аккаунт = один конфиг.
+
+  Q: Работает ли с другими сайтами кроме arena.ai?
+  A: Нет. DromDev специализирован только для arena.ai.
+
+================================================================================
+РАЗДЕЛ 32: ГЛОССАРИЙ ТЕРМИНОВ
+================================================================================
+
+  DromDev       — название AI инструмента (этот проект)
+  iis           — команда для запуска DromDev в терминале
+  arena.ai      — сайт с AI моделями, который парсит DromDev
+  orproject.ru  — сайт авторизации и биллинга DromDev
+  API токен     — строка вида username-dev-XXXXX для авторизации
+  MTProto       — протокол Telegram для зашифрованного прокси
+  mtg           — программа для создания MTProto туннелей
+  SOCKS5        — тип прокси протокола, используется браузером
+  Playwright    — библиотека Python для управления браузером
+  Chromium      — браузер (open source основа Chrome)
+  Headless      — браузер без графического интерфейса (для серверов)
+  Stealth       — скрытие признаков автоматизации браузера
+  Стриминг      — получение ответа по частям в реальном времени
+  Токены        — единица измерения текста для AI (~4 символа = 1 токен)
+  TTFT          — Time To First Token, время до первого слова ответа
+  Latency       — задержка сети (мс)
+  Admin тариф   — безлимитный тариф для администраторов
+  Rate limit    — ограничение количества запросов в единицу времени
+  Prompt        — запрос пользователя к AI модели
+  Completion    — ответ AI модели на запрос
+  Режим         — тип задачи: Text / Images / Video / Coding
+  Модель        — конкретная AI система: GPT-4o, Claude, Gemini и т.д.
+
+================================================================================
+РАЗДЕЛ 33: ROADMAP — ПЛАНЫ РАЗВИТИЯ
+================================================================================
+
+  ВЕРСИЯ 3.1 (ближайшее время):
+    ✦ Поддержка загрузки файлов (PDF, Word, изображения) в arena.ai
+    ✦ Сохранение сгенерированных изображений в облако
+    ✦ Telegram бот интерфейс для DromDev
+    ✦ Веб-интерфейс (простой, для тех кто не любит CLI)
+
+  ВЕРСИЯ 3.2:
+    ✦ Поддержка нескольких параллельных диалогов
+    ✦ Плагины — возможность добавлять свои команды
+    ✦ Интеграция с VS Code (расширение)
+    ✦ Автоматическое обновление списка моделей из arena.ai
+
+  ВЕРСИЯ 4.0 (долгосрочно):
+    ✦ Поддержка других AI платформ (не только arena.ai)
+    ✦ Локальные модели (Ollama интеграция)
+    ✦ Мультипользовательский режим (команды)
+    ✦ Аналитика использования моделей
+
+================================================================================
+            ◈◈◈  КОНЕЦ ПОЛНОГО ПРОМТА DromDev v3.0  ◈◈◈
+================================================================================
+  Название проекта:  DromDev
+  Команда запуска:   iis
+  Сервер:            Amsterdam VPS
+  AI платформа:      arena.ai (парсинг через Playwright)
+  Авторизация:       orproject.ru (токены + Google OAuth)
+  Прокси:            proxy.txt (MTProto через mtg + SOCKS5)
+  Биллинг:           $0.29/1k токенов (Claude Opus) | $0.27 (Sonnet) | $0.23 (GPT-4o)
+                     Видео от $0.30 до $0.80 за запрос
+  Admin токен:       denialonelys-dev-87169 (безлимит, $0)
+  Admin email:       denislonelys.business@fmail.com
+  Admin пароль:      Denis3110@
+  GitHub:            https://github.com/denislonelys/dromdev
+  Строк промта:      3600+
+================================================================================
