@@ -29,3 +29,6 @@ dromdev
 .iistudio/users.json
 .iistudio/api_tokens.json
 .iistudio/arena_accounts.json
+.iistudio/api_tokens.json
+.iistudio/config.json
+.iistudio/sessions/*.json
