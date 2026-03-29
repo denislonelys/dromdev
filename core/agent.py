@@ -52,6 +52,30 @@ from core.tools import AgentTools, SYSTEM_PROMPT_WITH_TOOLS
 
 SYSTEM_PROMPT = SYSTEM_PROMPT_WITH_TOOLS
 
+def get_system_prompt(model_id: str) -> str:
+    """Возвращает системный промпт с информацией о модели."""
+    model_info = MODELS.get(model_id, MODELS.get(DEFAULT_MODEL))
+    model_name = model_info.get("name", "Claude")
+    
+    # Базовый промпт с информацией о текущей модели
+    base_prompt = f"""Ты {model_name} - AI ассистент от Anthropic.
+
+Твоя версия: {model_name}
+Текущая дата: {datetime.now().strftime("%Y-%m-%d")}
+
+Ты помогаешь пользователям с:
+- Разработкой кода
+- Анализом текста
+- Планированием задач
+- Отладкой проблем
+- И многим другим
+
+Когда пользователь спросит какая ты версия, модель или кто ты - всегда отвечай что ты {model_name}, а не Kiro или другие названия.
+
+{SYSTEM_PROMPT}"""
+    
+    return base_prompt
+
 
 def _process_tool_calls(response: str, tools: "AgentTools") -> tuple[str, list[str]]:
     """Обрабатывает tool-вызовы в ответе агента и выполняет их."""
@@ -200,8 +224,9 @@ class IIStudioAgent:
         self.session.mode = mode
         self.session.add_user_message(message)
 
-        # Строим messages
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        # Строим messages с системным промптом для текущей модели
+        system_prompt = get_system_prompt(model_id)
+        messages = [{"role": "system", "content": system_prompt}]
         for msg in self.session.messages[-20:]:
             if msg.role in ("user", "assistant"):
                 messages.append({"role": msg.role, "content": msg.content})
@@ -307,7 +332,9 @@ class IIStudioAgent:
         model_info = MODELS.get(model_id, MODELS[DEFAULT_MODEL])
         api_model = model_info["model_id"]
 
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        # Системный промпт с информацией о текущей модели
+        system_prompt = get_system_prompt(model_id)
+        messages = [{"role": "system", "content": system_prompt}]
         for msg in self.session.messages[-20:]:
             if msg.role in ("user", "assistant"):
                 messages.append({"role": msg.role, "content": msg.content})
