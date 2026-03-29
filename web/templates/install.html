@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}IIStudio — Установка{% endblock %}
+{% block content %}
+<div class="page-container" style="max-width:800px">
+  <div style="text-align:center;padding:3rem 0 2rem">
+    <div style="font-size:3rem;color:var(--accent);margin-bottom:1rem">&#9672;</div>
+    <h1 style="font-size:2rem;margin-bottom:.5rem">Установка IIStudio</h1>
+    <p style="color:var(--text2)">AI Dev Tool с Claude Opus 4.6 и Sonnet 4.6</p>
+  </div>
+
+  <!-- Шаги установки -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem">
+
+    <!-- Шаг 1 -->
+    <div class="status-card">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+        <div style="width:36px;height:36px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">1</div>
+        <h3 style="margin:0">Установи Python и CLI</h3>
+      </div>
+      <div style="color:var(--text2);margin-bottom:1rem;font-size:.9rem">Нужен Python 3.10+ (Ubuntu/Debian/Mac/Windows WSL)</div>
+      <div style="background:var(--bg2);border-radius:8px;padding:1rem;font-family:var(--font-mono);font-size:.85rem;position:relative">
+        <button onclick="copy(this, 'step1')" style="position:absolute;top:.5rem;right:.5rem;background:var(--surface2);border:none;color:var(--text2);padding:.25rem .5rem;border-radius:4px;cursor:pointer;font-size:.75rem">копировать</button>
+        <div id="step1">git clone https://github.com/denislonelys/dromdev IIStudio
+cd IIStudio &amp;&amp; bash install.sh</div>
+      </div>
+    </div>
+
+    <!-- Шаг 2 -->
+    <div class="status-card">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+        <div style="width:36px;height:36px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">2</div>
+        <h3 style="margin:0">Зарегистрируйся и получи токен</h3>
+      </div>
+      <p style="color:var(--text2);font-size:.9rem;margin-bottom:1rem">
+        Зайди в личный кабинет → скопируй API токен (sk-iis-...)
+      </p>
+      <a href="/login" class="btn btn-primary" style="text-decoration:none;display:inline-block;margin-bottom:.75rem">
+        Войти / Зарегистрироваться
+      </a>
+      <div style="color:var(--text3);font-size:.8rem">После входа токен будет в кабинете</div>
+    </div>
+
+    <!-- Шаг 3 -->
+    <div class="status-card">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+        <div style="width:36px;height:36px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">3</div>
+        <h3 style="margin:0">Войди в CLI и начни работу</h3>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:1rem;font-family:var(--font-mono);font-size:.85rem;position:relative;margin-bottom:1rem">
+        <button onclick="copy(this, 'step3')" style="position:absolute;top:.5rem;right:.5rem;background:var(--surface2);border:none;color:var(--text2);padding:.25rem .5rem;border-radius:4px;cursor:pointer;font-size:.75rem">копировать</button>
+        <div id="step3"># Войди с токеном из кабинета:
+iis auth login --token sk-iis-...
+
+# Спроси AI:
+iis ask "напиши hello world на Python"
+
+# Интерактивный чат:
+iis chat</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Команды -->
+  <div class="status-card" style="margin-top:1.5rem">
+    <h3 class="status-card-title">Все команды CLI</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.875rem">
+      <div>
+        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Запросы к AI</div>
+        <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
+          <div>iis ask "вопрос"</div>
+          <div>iis chat</div>
+          <div>iis ask --model claude-opus-4-6 "..."</div>
+          <div>iis ask --stream "..."</div>
+        </div>
+      </div>
+      <div>
+        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Инструменты</div>
+        <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
+          <div>iis plan "задача"</div>
+          <div>iis fix "описание бага"</div>
+          <div>iis review .</div>
+          <div>iis yolo "создай проект"</div>
+        </div>
+      </div>
+      <div>
+        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Задачи</div>
+        <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
+          <div>iis tasks</div>
+          <div>iis task add "описание #тег"</div>
+          <div>iis task done ID</div>
+        </div>
+      </div>
+      <div>
+        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Аккаунт</div>
+        <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
+          <div>iis auth login</div>
+          <div>iis auth register</div>
+          <div>iis auth status</div>
+          <div>iis version</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модели -->
+  <div class="status-card" style="margin-top:1.5rem">
+    <h3 class="status-card-title">Доступные модели</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div style="background:var(--bg3);border-radius:8px;padding:1rem;border:1px solid var(--accent)">
+        <div style="font-weight:700;color:var(--accent)">Claude Opus 4.6</div>
+        <div style="color:var(--text3);font-size:.8rem;margin-top:.25rem">По умолчанию</div>
+        <div style="color:var(--text2);font-size:.85rem;margin-top:.5rem">Максимальная мощность для сложных задач</div>
+        <div style="color:var(--green);font-size:.8rem;margin-top:.5rem;font-weight:600">Бесплатно</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:1rem">
+        <div style="font-weight:700;color:var(--text)">Claude Sonnet 4.6</div>
+        <div style="color:var(--text3);font-size:.8rem;margin-top:.25rem">Скорость + качество</div>
+        <div style="color:var(--text2);font-size:.85rem;margin-top:.5rem">Баланс скорости и интеллекта</div>
+        <div style="color:var(--green);font-size:.8rem;margin-top:.5rem;font-weight:600">Бесплатно</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:2rem;color:var(--text3);font-size:.85rem">
+    Вопросы? <a href="/chat" style="color:var(--accent)">Спроси AI прямо на сайте</a>
+  </div>
+</div>
+
+<script>
+function copy(btn, id) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text);
+  btn.textContent = 'скопировано!';
+  setTimeout(() => btn.textContent = 'копировать', 2000);
+}
+</script>
+{% endblock %}

@@ -195,6 +195,13 @@ def create_app() -> FastAPI:
                          "balance_usd": 0.0, "free_tokens": 0, "total_spent": 0.0, "requests_count": 0},
             }, request)
 
+        @app.get("/install", include_in_schema=False)
+        async def web_install(request: Request):
+            return _tmpl("install.html", {
+                "version": settings.iistudio_version,
+                "mode": "text", "browser_running": False, "status": {},
+            }, request)
+
         @app.get("/pricing", include_in_schema=False)
         async def web_pricing(request: Request):
             from api.routes.pricing import PRICING, PLANS

@@ -43,10 +43,10 @@ OMNI_API_KEY = os.environ.get("OMNI_API_KEY", "sk-fb8573e9682d98eb-s6c8zf-386b85
 OMNI_MODEL   = os.environ.get("OMNI_MODEL", "kr/claude-sonnet-4.5")
 
 MODELS = {
-    "claude-sonnet-4-5": {"name": "Claude Sonnet 4.5", "provider": "Anthropic (KiroAI)", "model_id": "kr/claude-sonnet-4.5"},
-    "claude-haiku-4-5":  {"name": "Claude Haiku 4.5",  "provider": "Anthropic (KiroAI)", "model_id": "kr/claude-haiku-4.5"},
+    "claude-opus-4-6":   {"name": "Claude Opus 4.6",   "provider": "Anthropic", "model_id": "kr/claude-sonnet-4.5"},  # маппинг на доступную модель
+    "claude-sonnet-4-6": {"name": "Claude Sonnet 4.6", "provider": "Anthropic", "model_id": "kr/claude-sonnet-4.5"},
 }
-DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODEL = "claude-opus-4-6"  # По умолчанию Opus
 
 SYSTEM_PROMPT = "Ты — IIStudio AI, мощный ИИ-ассистент для разработчиков. Помогаешь с кодом, планированием, анализом. Отвечай чётко. При коде — блоки кода. Язык ответа = язык вопроса."
 

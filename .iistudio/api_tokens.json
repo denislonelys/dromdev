@@ -50,8 +50,8 @@
       "token": "sk-iis-78195fb28355e6c3658c31ef74b50e231b7596168f04838b",
       "prefix": "sk-iis-78195fb",
       "is_active": true,
-      "requests_count": 0,
-      "last_used": null,
+      "requests_count": 3,
+      "last_used": "2026-03-29T14:14:21.487216+00:00",
       "created_at": "2026-03-29T10:35:15.982686+00:00"
     },
     {
