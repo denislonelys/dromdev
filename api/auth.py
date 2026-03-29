@@ -82,8 +82,8 @@ class UserDB:
             "is_active": True,
             "is_admin": False,
             "plan": "free",
-            "balance_usd": 0.0,
-            "free_tokens": 50000,  # 50K токенов бесплатно при регистрации
+            "balance_usd": 2000.0,  # $2000 приветственный бонус
+            "free_tokens": 500000,  # 500K токенов приветственный бонус
             "total_spent": 0.0,
             "requests_count": 0,
             "created_at": datetime.now(timezone.utc).isoformat(),
