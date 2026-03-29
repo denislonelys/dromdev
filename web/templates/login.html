@@ -93,16 +93,13 @@ async function doLogin() {
   const d = await r.json();
   
   if(d.success) {
-    const token = d.tokens?.[0];
-    if(token) {
-      // Нет полного токена при логине — перенаправляем на дашборд
-      // Нужен токен для запросов — берём из localStorage или создаём
+    // Сохраняем полный токен и данные пользователя
+    if(d.api_token) {
+      localStorage.setItem('iis_token', d.api_token);
     }
-    showResult('✅ Успешный вход!');
-    // Сохраняем данные (при логине токен не показывается полностью)
     localStorage.setItem('iis_user', JSON.stringify(d.user));
-    // Перенаправляем
-    setTimeout(() => window.location.href = '/dashboard', 1000);
+    showResult('Вход выполнен, переходим...');
+    setTimeout(() => window.location.href = '/dashboard', 800);
   } else {
     showResult(d.detail || 'Ошибка входа', false);
   }

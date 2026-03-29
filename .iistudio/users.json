@@ -57,6 +57,21 @@
     "total_spent": 0.0,
     "requests_count": 0,
     "created_at": "2026-03-29T10:35:15.982662+00:00",
+    "last_login": "2026-03-29T14:11:27.972877+00:00"
+  },
+  "checktest@test.com": {
+    "id": "0c4cc3f3b14b22d0f61e81f4de25df78",
+    "email": "checktest@test.com",
+    "username": "checktest",
+    "password_hash": "7a9f8e082fba329d0edab49199b9b314:620f89a2173fa617dbed1c094e096b23a4a061a564ac7ecdfcdf9a9776d77214",
+    "is_active": true,
+    "is_admin": false,
+    "plan": "free",
+    "balance_usd": 0.0,
+    "free_tokens": 50000,
+    "total_spent": 0.0,
+    "requests_count": 0,
+    "created_at": "2026-03-29T14:02:37.291975+00:00",
     "last_login": null
   }
 }

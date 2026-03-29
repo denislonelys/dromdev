@@ -66,5 +66,19 @@
       "last_used": "2026-03-29T11:31:16.032918+00:00",
       "created_at": "2024-01-01T00:00:00+00:00"
     }
+  ],
+  "0c4cc3f3b14b22d0f61e81f4de25df78": [
+    {
+      "id": "438f4ba0fc6fd5ef",
+      "user_id": "0c4cc3f3b14b22d0f61e81f4de25df78",
+      "email": "checktest@test.com",
+      "name": "Default",
+      "token": "sk-iis-c52e3232c9d9ca87effd451af2e0051c41561dcdda642488",
+      "prefix": "sk-iis-c52e323",
+      "is_active": true,
+      "requests_count": 0,
+      "last_used": null,
+      "created_at": "2026-03-29T14:02:37.292016+00:00"
+    }
   ]
 }

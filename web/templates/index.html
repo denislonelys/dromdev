@@ -93,4 +93,10 @@
 
 {% block extra_scripts %}
 <script src="/static/js/chat.js"></script>
+<script>
+  // Если не авторизован — редирект на страницу входа
+  if(!localStorage.getItem('iis_token')) {
+    window.location.href = '/login';
+  }
+</script>
 {% endblock %}

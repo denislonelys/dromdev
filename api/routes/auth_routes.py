@@ -85,7 +85,7 @@ async def register(body: RegisterRequest) -> Dict[str, Any]:
 
 @router.post("/login", summary="Войти")
 async def login(body: LoginRequest) -> Dict[str, Any]:
-    """Войти в аккаунт и получить список API токенов."""
+    """Войти в аккаунт. Возвращает полный токен первого активного ключа."""
     db = get_db()
     user = db.login(body.email, body.password)
     if not user:
@@ -94,8 +94,18 @@ async def login(body: LoginRequest) -> Dict[str, Any]:
     tokens = db.get_tokens(user["id"])
     active_tokens = [t for t in tokens if t.get("is_active")]
 
+    # Возвращаем полный токен первого активного ключа
+    first_token = active_tokens[0]["token"] if active_tokens else None
+
+    # Если нет токенов — создаём новый
+    if not first_token:
+        new_token = db.create_token(user["id"], user["email"], name="Default")
+        first_token = new_token["token"]
+        active_tokens = [new_token]
+
     return {
         "success": True,
+        "api_token": first_token,  # Полный токен для localStorage
         "user": {
             "id": user["id"],
             "email": user["email"],
