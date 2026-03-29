@@ -83,7 +83,10 @@ class Settings(BaseSettings):
     request_timeout: int = Field(120, alias="REQUEST_TIMEOUT")
     max_retries: int = Field(3, alias="MAX_RETRIES")
     default_mode: str = Field("text", alias="DEFAULT_MODE")
-    default_model: str = Field("claude-3-5-sonnet", alias="DEFAULT_MODEL")
+    default_model: str = Field("claude-sonnet-4-6", alias="DEFAULT_MODEL")
+
+    # ── Anthropic API ─────────────────────────────────────────────────────────
+    anthropic_api_key: str = Field("", alias="ANTHROPIC_API_KEY")
 
     # ── Celery ────────────────────────────────────────────────────────────────
     celery_broker_url: str = Field("redis://localhost:6379/1", alias="CELERY_BROKER_URL")

@@ -1,128 +1,87 @@
 # ============================================================================
-# IIStudio — Главный агент (оркестратор)
+# IIStudio — Главный агент (Anthropic Claude API напрямую)
+# Без Playwright, без arena.ai — чистый API
 # ============================================================================
 
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from arena.models import get_default_model, get_model, get_models_for_mode
-from arena.parser import ArenaParser
-from arena.receiver import ResponseProcessor
-from arena.sender import ArenaSender
+from api.auth import get_db
 from cache.cache import CacheManager
-from core.account_pool import AccountPool
 from config import Settings
-from core.browser import BrowserManager
+from core.claude_client import ClaudeClient, MODELS, DEFAULT_MODEL, calc_cost
 from core.context import ProjectContext
 from core.session import Session
-from core.xvfb_chrome import ensure_chrome_running
-from proxy.manager import ProxyManager
 from utils.helpers import make_cache_key
 from utils.logger import logger
 
+# Системный промпт для IIStudio
+SYSTEM_PROMPT = """Ты — IIStudio AI, мощный ИИ-ассистент для разработчиков.
+Ты помогаешь с кодом, планированием, анализом, объяснениями.
+Отвечай чётко и по делу. При написании кода — используй блоки кода с синтаксисом.
+Отвечай на том языке на котором спрашивают."""
+
 
 class IIStudioAgent:
-    """Главный агент IIStudio — объединяет браузер, прокси, кэш, сессии."""
+    """Главный агент IIStudio — Anthropic Claude API."""
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.session = Session(mode=settings.default_mode, model_id=settings.default_model)
+        self.session = Session(mode=settings.default_mode)
         self.context = ProjectContext(Path("."))
 
-        # Компоненты
-        self._proxy_manager = ProxyManager(
-            proxy_file=settings.proxy_file_path,
-            check_interval=settings.proxy_check_interval,
-            max_failures=settings.proxy_max_failures,
-            mtproto_local_host=settings.mtproto_socks5_host,
-            mtproto_local_port=settings.mtproto_socks5_port,
-        )
+        # Кэш
         self._cache = CacheManager(
             redis_url=settings.redis_url,
             default_ttl=settings.cache_ttl,
             max_memory_size=settings.cache_max_size,
         )
-        self._browser: Optional[BrowserManager] = None
-        self._sender: Optional[ArenaSender] = None
+
+        # Клиент Anthropic (ключ берём из env или из DB по токену пользователя)
+        self._api_key: Optional[str] = os.environ.get("ANTHROPIC_API_KEY", "")
+        self._client: Optional[ClaudeClient] = None
+        self._current_model = settings.default_model or DEFAULT_MODEL
         self._started = False
+
+        # Прокси (не используем для Anthropic API — он доступен напрямую)
+        from proxy.manager import ProxyManager
+        self._proxy_manager = ProxyManager(
+            proxy_file=settings.proxy_file_path,
+            check_interval=settings.proxy_check_interval,
+            max_failures=settings.proxy_max_failures,
+        )
 
     # ── Lifecycle ────────────────────────────────────────────────────────────
 
     async def start(self) -> None:
-        """Инициализировать все компоненты."""
+        """Инициализировать агента."""
         logger.info("IIStudio запускается...")
 
-        # Кэш
         await self._cache.start()
 
-        # Прокси
-        await self._proxy_manager.start()
-        proxy_url = self._proxy_manager.get_socks5_url()
-
-        # Браузер через Xvfb+Chrome (обход reCAPTCHA) или CDP подключение
-        try:
-            cdp_url = await ensure_chrome_running()
-            self._browser = BrowserManager(
-                headless=False,
-                proxy_url=proxy_url,
-                user_agent=self.settings.browser_user_agent,
-                viewport_width=self.settings.browser_viewport_width,
-                viewport_height=self.settings.browser_viewport_height,
-                timeout=self.settings.browser_timeout,
-                cdp_url=cdp_url,
+        # Инициализируем Claude клиент
+        if self._api_key:
+            self._client = ClaudeClient(self._api_key)
+            logger.info("✅ Claude API готов ({})", self._current_model)
+        else:
+            logger.warning(
+                "ANTHROPIC_API_KEY не задан. "
+                "Установи: export ANTHROPIC_API_KEY=sk-ant-... "
+                "или получи ключ на console.anthropic.com"
             )
-        except Exception as e:
-            logger.warning("Xvfb/Chrome недоступен ({}), используем headless", e)
-            self._browser = BrowserManager(
-                headless=True,
-                proxy_url=proxy_url,
-                user_agent=self.settings.browser_user_agent,
-                viewport_width=self.settings.browser_viewport_width,
-                viewport_height=self.settings.browser_viewport_height,
-                timeout=self.settings.browser_timeout,
-            )
-        page = await self._browser.start()
-
-        # Пул аккаунтов (авто-смена при rate limit)
-        account_pool = AccountPool()
-        # Добавляем основной аккаунт из .env если его ещё нет
-        if self.settings.arena_email and not any(
-            a["email"] == self.settings.arena_email for a in account_pool._accounts
-        ):
-            account_pool.add_account(self.settings.arena_email, self.settings.arena_password)
-            account_pool._current_idx = len(account_pool._accounts) - 1
-
-        # Парсер + отправитель
-        parser = ArenaParser(page, base_url=self.settings.arena_base_url)
-        self._sender = ArenaSender(
-            parser=parser,
-            email=account_pool.current_email or self.settings.arena_email,
-            password=account_pool.current_password or self.settings.arena_password,
-        )
-        self._sender._account_pool = account_pool  # type: ignore
-
-        # Инициализация: загрузка страницы, cookies, логин (один раз!)
-        init_ok = await self._sender.parser.initialize(
-            email=self.settings.arena_email,
-            password=self.settings.arena_password,
-        )
-        if not init_ok:
-            logger.warning("Инициализация AI не завершена. Запусти: iis auth login")
 
         self._started = True
-        logger.info("✅ IIStudio готов к работе")
+        logger.info("✅ IIStudio готов")
 
     async def stop(self) -> None:
-        """Корректно завершить все компоненты."""
+        """Завершить работу."""
         self.session.save()
         await self._cache.stop()
-        await self._proxy_manager.stop()
-        if self._browser:
-            await self._browser.stop()
         self._started = False
         logger.info("IIStudio остановлен")
 
@@ -133,7 +92,31 @@ class IIStudioAgent:
     async def __aexit__(self, *_: Any) -> None:
         await self.stop()
 
-    # ── Главный метод ────────────────────────────────────────────────────────
+    # ── Настройка API ключа из токена пользователя ────────────────────────────
+
+    def set_api_key(self, api_key: str) -> None:
+        """Установить Anthropic API ключ (из аккаунта пользователя)."""
+        self._api_key = api_key
+        self._client = ClaudeClient(api_key)
+
+    def set_api_key_from_user_token(self, user_token: str) -> bool:
+        """Найти API ключ пользователя по его IIStudio токену и установить."""
+        db = get_db()
+        user = db.verify_token(user_token)
+        if not user:
+            return False
+        # У пользователя может быть свой Anthropic ключ в профиле
+        anthropic_key = user.get("anthropic_api_key", "")
+        if anthropic_key:
+            self.set_api_key(anthropic_key)
+            return True
+        # Используем общий ключ из env
+        if self._api_key:
+            self._client = ClaudeClient(self._api_key)
+            return True
+        return False
+
+    # ── Главный метод chat ────────────────────────────────────────────────────
 
     async def chat(
         self,
@@ -142,74 +125,120 @@ class IIStudioAgent:
         model_id: Optional[str] = None,
         use_cache: bool = True,
         stream: bool = False,
+        user_token: Optional[str] = None,  # IIStudio токен для billing
+        file_path: Optional[Path] = None,   # файл для анализа
     ) -> Dict[str, Any]:
         """Отправить запрос и получить ответ.
 
-        Args:
-            message: текст запроса
-            mode: режим (text/images/video/coding), по умолчанию из сессии
-            model_id: модель, по умолчанию из сессии
-            use_cache: проверять кэш перед отправкой
-            stream: стриминг (используй chat_stream для этого)
-
         Returns:
-            dict с ключами: success, response, model, mode, cached, latency_ms
+            dict: success, response, model, input_tokens, output_tokens, cost_usd, cached
         """
         if not self._started:
             raise RuntimeError("Агент не запущен. Вызови await agent.start()")
 
+        model_id = model_id or self._current_model or DEFAULT_MODEL
         mode = mode or self.session.mode
-        model_id = model_id or self.session.model_id
 
-        # Обновить сессию
-        self.session.mode = mode
-        if model_id:
-            self.session.model_id = model_id
-        self.session.add_user_message(message)
+        result: Dict[str, Any] = {
+            "success": False,
+            "response": None,
+            "model": model_id,
+            "mode": mode,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "cost_usd": 0.0,
+            "cached": False,
+            "error": None,
+        }
 
-        # Проверить кэш
+        # Проверяем клиент
+        if not self._client:
+            result["error"] = (
+                "ANTHROPIC_API_KEY не настроен. "
+                "Установи: export ANTHROPIC_API_KEY=sk-ant-... "
+                "Получи ключ: https://console.anthropic.com"
+            )
+            return result
+
+        # Billing: проверяем баланс пользователя
+        db = get_db()
+        user = None
+        if user_token:
+            user = db.verify_token(user_token)
+            if user:
+                balance = user.get("balance_usd", 0.0)
+                free_tokens = user.get("free_tokens", 0)
+                if balance <= 0 and free_tokens <= 0:
+                    result["error"] = (
+                        "Баланс исчерпан. Пополни на https://orproject.online/pricing"
+                    )
+                    return result
+
+        # Проверяем кэш
         if use_cache:
-            cache_key = make_cache_key("chat", mode, model_id or "", message)
+            cache_key = make_cache_key("chat", model_id, message)
             cached = await self._cache.get(cache_key)
             if cached:
                 logger.debug("Ответ из кэша")
-                self.session.add_assistant_message(cached["response"], model_id=cached.get("model"))
+                self.session.add_user_message(message)
+                self.session.add_assistant_message(cached["response"], model_id=model_id)
                 return {**cached, "cached": True}
 
-        # Отправить запрос
-        start_time = time.perf_counter()
-        result = await self._sender.send(
-            message=message,
-            mode=mode,
-            model_id=model_id,
-            timeout=self.settings.request_timeout,
-        )
-        latency_ms = (time.perf_counter() - start_time) * 1000
-        result["latency_ms"] = round(latency_ms, 1)
-        result["cached"] = False
+        # Обновляем сессию
+        self.session.mode = mode
+        self.session.add_user_message(message)
 
-        # Защита от None response
-        if result is None:
-            result = {"success": False, "response": None, "error": "Нет ответа от агента", "model": model_id, "mode": mode}
+        # Строим messages для Claude
+        messages = self._build_messages(message)
 
-        # Сохранить в кэш если успешно
-        if result.get("success") and use_cache:
-            await self._cache.set(cache_key, result, ttl=self.settings.cache_ttl)
+        # Отправляем запрос
+        try:
+            if file_path:
+                api_result = await self._client.chat_with_file(
+                    message=message,
+                    file_path=file_path,
+                    model_id=model_id,
+                    max_tokens=4096,
+                    system=SYSTEM_PROMPT,
+                )
+            else:
+                api_result = await self._client.chat(
+                    messages=messages,
+                    model_id=model_id,
+                    max_tokens=4096,
+                    system=SYSTEM_PROMPT,
+                )
 
-        # Добавить в историю
-        if result.get("response"):
-            self.session.add_assistant_message(
-                result["response"],
-                model_id=result.get("model"),
-                latency_ms=latency_ms,
-            )
+            if api_result.get("success"):
+                text = api_result["text"]
+                result.update({
+                    "success": True,
+                    "response": text,
+                    "model": model_id,
+                    "input_tokens": api_result.get("input_tokens", 0),
+                    "output_tokens": api_result.get("output_tokens", 0),
+                    "cost_usd": api_result.get("cost_usd", 0.0),
+                    "latency_ms": 0,
+                })
 
-        # При ошибке прокси — пробуем переключить
-        if not result.get("success"):
-            self._proxy_manager.report_failure()
-            new_proxy = await self._proxy_manager.switch()
-            if new_proxy and self._browser:
-                await self._browser.update_proxy(self._proxy_manager.get_socks5_url())
+                # Billing: вычитаем токены у пользователя
+                if user and user_token:
+                    total_tokens = api_result.get("input_tokens", 0) + api_result.get("output_tokens", 0)
+                    cost = api_result.get("cost_usd", 0.0)
+                    db.deduct_tokens(user["id"], total_tokens, model_id, cost)
+
+                # Кэшируем
+                if use_cache:
+                    await self._cache.set(cache_key, result, ttl=self.settings.cache_ttl)
+
+                # История
+                self.session.add_assistant_message(text, model_id=model_id)
+            else:
+                result["error"] = api_result.get("error", "Неизвестная ошибка API")
+
+        except Exception as e:
+            logger.error("Ошибка запроса к Claude: {}", e)
+            result["error"] = str(e)
 
         return result
 
@@ -218,82 +247,93 @@ class IIStudioAgent:
         message: str,
         mode: Optional[str] = None,
         model_id: Optional[str] = None,
+        user_token: Optional[str] = None,
     ) -> AsyncGenerator[str, None]:
-        """Стриминг ответа по мере поступления."""
-        if not self._started:
-            raise RuntimeError("Агент не запущен")
+        """Стриминг ответа."""
+        if not self._client:
+            yield "[ERROR] ANTHROPIC_API_KEY не настроен"
+            return
 
-        mode = mode or self.session.mode
-        model_id = model_id or self.session.model_id
+        model_id = model_id or self._current_model or DEFAULT_MODEL
+        messages = self._build_messages(message)
         self.session.add_user_message(message)
 
-        full_response = ""
-        async for delta in self._sender.send_stream(
-            message=message, mode=mode, model_id=model_id,
-            timeout=self.settings.request_timeout,
+        full_text = ""
+        input_tokens = 0
+        output_tokens = 0
+
+        async for event in self._client.stream_chat(
+            messages=messages,
+            model_id=model_id,
+            max_tokens=4096,
+            system=SYSTEM_PROMPT,
         ):
-            full_response += delta
-            yield delta
+            if event["type"] == "delta":
+                text = event["text"]
+                full_text += text
+                yield text
+            elif event["type"] == "done":
+                input_tokens = event.get("input_tokens", 0)
+                output_tokens = event.get("output_tokens", 0)
+                cost = event.get("cost_usd", 0.0)
+                # Billing
+                if user_token:
+                    db = get_db()
+                    user = db.verify_token(user_token)
+                    if user:
+                        db.deduct_tokens(user["id"], input_tokens + output_tokens, model_id, cost)
+            elif event["type"] == "error":
+                yield f"[ERROR] {event['error']}"
+                return
 
-        if full_response:
-            self.session.add_assistant_message(full_response, model_id=model_id)
+        if full_text:
+            self.session.add_assistant_message(full_text, model_id=model_id)
 
-    async def compare(
-        self,
-        message: str,
-        mode: Optional[str] = None,
-    ) -> Dict[str, Dict[str, Any]]:
-        """Сравнить ответы нескольких моделей."""
-        mode = mode or self.session.mode
-        return await self._sender.send_to_all_models(
-            message=message,
-            mode=mode,
-            timeout=self.settings.request_timeout,
-        )
-
-    # ── Управление режимом/моделью ────────────────────────────────────────────
+    # ── Режим и модель ────────────────────────────────────────────────────────
 
     def set_mode(self, mode: str) -> bool:
         valid = {"text", "images", "video", "coding"}
         if mode not in valid:
             return False
         self.session.mode = mode
-        logger.info("Режим: {}", mode)
         return True
 
     def set_model(self, model_id: str) -> bool:
-        model = get_model(model_id)
-        if not model:
-            return False
-        self.session.model_id = model.id
-        logger.info("Модель: {}", model.name)
-        return True
+        if model_id in MODELS:
+            self._current_model = model_id
+            logger.info("Модель: {}", MODELS[model_id]["name"])
+            return True
+        return False
 
-    # ── Статус ────────────────────────────────────────────────────────────────
+    # ── Вспомогательные ──────────────────────────────────────────────────────
+
+    def _build_messages(self, new_message: str) -> List[Dict[str, Any]]:
+        """Построить список сообщений для Claude из истории сессии."""
+        messages = []
+        # История (последние 20 сообщений)
+        for msg in self.session.messages[-20:]:
+            if msg.role in ("user", "assistant"):
+                messages.append({"role": msg.role, "content": msg.content})
+        # Добавляем новое сообщение если его ещё нет
+        if not messages or messages[-1]["content"] != new_message:
+            messages.append({"role": "user", "content": new_message})
+        return messages
 
     async def get_status(self) -> Dict[str, Any]:
-        proxy = self._proxy_manager.get_current()
         cache_info = await self._cache.info()
         return {
-            "version": self.settings.iistudio_version,
-            "env": self.settings.iistudio_env,
-            "mode": self.session.mode,
-            "model": self.session.model_id,
-            "session_id": self.session.session_id,
-            "messages": self.session.message_count,
-            "proxy": {
-                "current": f"{proxy['host']}:{proxy['port']}" if proxy else None,
-                "type": proxy.get("type") if proxy else None,
-                "latency_ms": proxy.get("latency_ms") if proxy else None,
-            },
-            "cache": cache_info,
-            "browser_running": self._browser is not None,
+            "version":        self.settings.iistudio_version,
+            "env":            self.settings.iistudio_env,
+            "mode":           self.session.mode,
+            "model":          self._current_model,
+            "model_name":     MODELS.get(self._current_model, {}).get("name", self._current_model),
+            "session_id":     self.session.session_id,
+            "messages":       self.session.message_count,
+            "api_ready":      self._client is not None,
+            "browser_running": False,  # Playwright больше не используем
+            "proxy":          {"current": None},
+            "cache":          cache_info,
         }
-
-    async def screenshot(self, path: str = "screenshot.png") -> str:
-        if self._browser:
-            return await self._browser.screenshot(path)
-        raise RuntimeError("Браузер не запущен")
 
     # ── История ───────────────────────────────────────────────────────────────
 
@@ -304,10 +344,28 @@ class IIStudioAgent:
         self.session.clear()
 
     async def get_proxy_status(self) -> List[Dict[str, Any]]:
-        return self._proxy_manager.get_status()
+        return []
 
     async def switch_proxy(self) -> Optional[Dict[str, Any]]:
-        proxy = await self._proxy_manager.switch()
-        if proxy and self._browser:
-            await self._browser.update_proxy(self._proxy_manager.get_socks5_url())
-        return proxy
+        return None
+
+    async def screenshot(self, path: str = "screenshot.png") -> str:
+        raise RuntimeError("Браузер не используется в этой версии")
+
+    # ── Сравнение моделей ─────────────────────────────────────────────────────
+
+    async def compare(
+        self, message: str, mode: Optional[str] = None
+    ) -> Dict[str, Dict[str, Any]]:
+        """Сравнить ответы всех моделей."""
+        results: Dict[str, Dict[str, Any]] = {}
+        for model_id, info in MODELS.items():
+            logger.info("Compare: {}", info["name"])
+            r = await self.chat(message, model_id=model_id)
+            results[model_id] = {
+                "model_name": info["name"],
+                "provider": info["provider"],
+                **r,
+            }
+            await asyncio.sleep(0.5)
+        return results
