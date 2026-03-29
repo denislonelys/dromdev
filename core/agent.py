@@ -183,8 +183,13 @@ class IIStudioAgent:
                 result["error"] = "Баланс исчерпан. Пополни на https://orproject.online/pricing"
                 return result
 
-        # Кэш
-        if use_cache:
+        # Кэш (отключаем для вопросов о версии/модели/себе)
+        skip_cache = any(q in message.lower() for q in [
+            "какая ты модель", "какая версия", "кто ты", "что ты", "какой ты", 
+            "я помощник", "я claude", "версия", "модель", "kiro"
+        ])
+        
+        if use_cache and not skip_cache:
             cache_key = make_cache_key("chat", model_id, message)
             cached = await self._cache.get(cache_key)
             if cached:
