@@ -1,5 +1,5 @@
 [Unit]
-Description=OmniRoute — KiroAI Claude API proxy (бесплатный Claude)
+Description=OmniRoute — KiroAI Claude API proxy
 After=network.target
 
 [Service]
@@ -7,9 +7,9 @@ Type=simple
 User=root
 Environment=HOME=/root
 WorkingDirectory=/root
-ExecStart=/root/.nvm/versions/node/v22.22.2/bin/node /usr/bin/omniroute
+ExecStart=/usr/bin/node /usr/bin/omniroute
 Restart=always
-RestartSec=15
+RestartSec=10
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=omniroute
