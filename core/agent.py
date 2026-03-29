@@ -14,6 +14,20 @@ from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import httpx
+from pathlib import Path as _Path
+
+# Загружаем .env напрямую если переменные не в окружении
+def _load_env():
+    env_file = _Path(__file__).parent.parent / ".env"
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, val = line.partition("=")
+                if key.strip() not in os.environ:
+                    os.environ[key.strip()] = val.strip()
+
+_load_env()
 
 from api.auth import get_db
 from cache.cache import CacheManager
@@ -150,7 +164,7 @@ class IIStudioAgent:
                         "model":      api_model,
                         "messages":   messages,
                         "max_tokens": 4096,
-                        "stream":     False,
+                        "stream":     True,  # OmniRoute возвращает SSE стриминг
                     },
                 )
 
@@ -158,9 +172,31 @@ class IIStudioAgent:
                     result["error"] = f"API error {resp.status_code}: {resp.text[:200]}"
                     return result
 
-                data = resp.json()
-                text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-                usage = data.get("usage", {})
+                # Читаем SSE стриминг
+                import json as _json
+                text = ""
+                input_tokens = 0
+                output_tokens = 0
+                for line in resp.text.split("\n"):
+                    line = line.strip()
+                    if not line or not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        chunk = _json.loads(data_str)
+                        delta = chunk.get("choices",[{}])[0].get("delta",{}).get("content","")
+                        if delta:
+                            text += delta
+                        usage_chunk = chunk.get("usage", {})
+                        if usage_chunk:
+                            input_tokens = usage_chunk.get("prompt_tokens", input_tokens)
+                            output_tokens = usage_chunk.get("completion_tokens", output_tokens)
+                    except Exception:
+                        pass
+                data = {}
+                usage = {"prompt_tokens": input_tokens or len(text)//4, "completion_tokens": output_tokens or len(text)//4}
                 input_tokens  = usage.get("prompt_tokens", 0)
                 output_tokens = usage.get("completion_tokens", 0)
                 # KiroAI бесплатный — cost = 0
