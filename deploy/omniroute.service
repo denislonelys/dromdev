@@ -1,0 +1,18 @@
+[Unit]
+Description=OmniRoute — KiroAI Claude API proxy (бесплатный Claude)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+WorkingDirectory=/root
+ExecStart=/root/.nvm/versions/node/v22.22.2/bin/node /usr/bin/omniroute
+Restart=always
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=omniroute
+
+[Install]
+WantedBy=multi-user.target
