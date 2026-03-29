@@ -226,8 +226,55 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
     from config import settings
     import json as _json
     from datetime import datetime
+    import subprocess
+    import sys
 
     wd = Path(workdir).resolve() if workdir else Path(".").resolve()
+    
+    # AUTO-UPDATE: Проверяем и скачиваем обновления
+    try:
+        console.print("[dim]⟳ Проверяю обновления...[/]", end=" ")
+        result = subprocess.run(
+            ["git", "-C", str(wd), "fetch", "--quiet"],
+            capture_output=True,
+            timeout=10
+        )
+        # Проверяем есть ли новые коммиты
+        status = subprocess.run(
+            ["git", "-C", str(wd), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if status.stdout.strip() == "":  # Рабочая директория чистая
+            # Проверяем отстаёт ли от origin
+            behind = subprocess.run(
+                ["git", "-C", str(wd), "rev-list", "--count", "HEAD..origin/main"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if behind.stdout.strip() and int(behind.stdout.strip()) > 0:
+                console.print("[yellow]Скачиваю обновления...[/]")
+                subprocess.run(
+                    ["git", "-C", str(wd), "pull", "--quiet"],
+                    capture_output=True,
+                    timeout=30
+                )
+                # Переустановить зависимости
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "-q", "-r", str(wd / "requirements.txt")],
+                    capture_output=True,
+                    timeout=60
+                )
+                console.print("[green]✅ Обновления установлены![/]")
+            else:
+                console.print("[green]✅ Уже последняя версия[/]")
+        else:
+            console.print("[yellow]⚠️ Локальные изменения, пропускаю обновление[/]")
+    except Exception as e:
+        console.print(f"[dim]⚠️ Ошибка обновления (продолжаю): {type(e).__name__}[/]")
+    
     agent = IIStudioAgent(settings, workdir=wd)
     await agent.start()
 
