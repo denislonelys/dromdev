@@ -81,11 +81,13 @@ async def register(body: RegisterRequest) -> Dict[str, Any]:
                 "email": user["email"],
                 "username": user["username"],
                 "plan": user["plan"],
+                "balance_usd": user.get("balance_usd", 2000.0),
+                "free_tokens": user.get("free_tokens", 500000),
             },
             "api_token": token,
             "welcome_bonus": welcome_bonus,
-            "free_tokens": 500000,
-            "balance_usd": 2000.0,
+            "free_tokens": user.get("free_tokens", 500000),
+            "balance_usd": user.get("balance_usd", 2000.0),
             "note": "Сохрани токен — он показывается ОДИН РАЗ. Используй его в CLI: iis auth login --token sk-iis-..."
         }
     except ValueError as e:

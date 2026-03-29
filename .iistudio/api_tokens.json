@@ -108,5 +108,47 @@
       "last_used": null,
       "created_at": "2026-03-29T15:52:15.306127+00:00"
     }
+  ],
+  "34baa815cb52c2e6d74651f6729fb442": [
+    {
+      "id": "f88c07b9e262e2ca",
+      "user_id": "34baa815cb52c2e6d74651f6729fb442",
+      "email": "final@example.com",
+      "name": "Default",
+      "token": "sk-iis-8deb429ec46a2d755bf98e8e760ebca9f9246b43b55dd9a0",
+      "prefix": "sk-iis-8deb429",
+      "is_active": true,
+      "requests_count": 0,
+      "last_used": null,
+      "created_at": "2026-03-29T15:53:29.493484+00:00"
+    }
+  ],
+  "461f36eb978ebf853051d49171d12977": [
+    {
+      "id": "128922fc8894161c",
+      "user_id": "461f36eb978ebf853051d49171d12977",
+      "email": "bonus@test.com",
+      "name": "Default",
+      "token": "sk-iis-893fa854e4c65739aa4461b58db01d1da07a680c71285ca7",
+      "prefix": "sk-iis-893fa85",
+      "is_active": true,
+      "requests_count": 0,
+      "last_used": null,
+      "created_at": "2026-03-29T16:00:22.925589+00:00"
+    }
+  ],
+  "16d0cafe107983add717a93aa3488507": [
+    {
+      "id": "26bcb9afac2634f7",
+      "user_id": "16d0cafe107983add717a93aa3488507",
+      "email": "success@test.com",
+      "name": "Default",
+      "token": "sk-iis-b7fe622b72db55831fe8ef05550ee0a910c8512b10a74436",
+      "prefix": "sk-iis-b7fe622",
+      "is_active": true,
+      "requests_count": 0,
+      "last_used": null,
+      "created_at": "2026-03-29T16:02:32.671222+00:00"
+    }
   ]
 }
