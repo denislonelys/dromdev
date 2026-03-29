@@ -1,7 +1,7 @@
 # ============================================================================
 # IIStudio — Главный агент (KiroAI через OmniRoute)
 #
-# Движок: KiroAI (Claude Sonnet 4.5) через OmniRoute на localhost:20128
+# Движок: KiroAI (Claude Opus 4.6) через OmniRoute на localhost:20128
 # Бесплатно, без API ключа Anthropic, скорость ~2с
 # Endpoint: http://localhost:20128/v1 (OpenAI-совместимый)
 # ============================================================================
