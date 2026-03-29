@@ -58,12 +58,18 @@ ok "Системные зависимости установлены"
 
 # ── Клонирование ─────────────────────────────────────────────────────────────
 step "Клонирование IIStudio в $IISTUDIO_DIR..."
-if [[ ! -f "$IISTUDIO_DIR/pyproject.toml" ]]; then
+if [[ -d "$IISTUDIO_DIR/.git" ]]; then
+    info "Репозиторий уже существует — обновляем..."
+    cd "$IISTUDIO_DIR" && git pull origin main 2>/dev/null || warn "git pull не удался — используем текущую версию"
+    ok "Репозиторий обновлён"
+elif [[ -d "$IISTUDIO_DIR" ]] && [[ "$(ls -A $IISTUDIO_DIR)" ]]; then
+    warn "Папка $IISTUDIO_DIR уже существует. Клонируем в другое место..."
+    IISTUDIO_DIR="${IISTUDIO_DIR}_new"
+    git clone "$REPO_URL" "$IISTUDIO_DIR" || error "Не удалось клонировать"
+    ok "Клонирован в $IISTUDIO_DIR"
+else
     git clone "$REPO_URL" "$IISTUDIO_DIR" || error "Не удалось клонировать"
     ok "Репозиторий клонирован"
-else
-    info "Директория уже существует — обновляем"
-    cd "$IISTUDIO_DIR" && git pull --ff-only || warn "git pull не удался"
 fi
 cd "$IISTUDIO_DIR"
 
