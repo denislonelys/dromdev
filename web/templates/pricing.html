@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}IIStudio — Цены{% endblock %}
+{% block content %}
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1>💰 Цены</h1>
+      <p class="page-subtitle">Все модели arena.ai — оплата только за использование</p>
+    </div>
+  </div>
+
+  <!-- Тарифы -->
+  <div class="models-grid" style="margin-bottom:3rem">
+    {% for plan_id, plan in plans.items() %}
+    <div class="model-card {% if plan_id == 'pro' %}model-card-default{% endif %}" style="padding:1.5rem">
+      {% if plan_id == 'pro' %}<div class="model-badge">Популярный</div>{% endif %}
+      <div class="model-name" style="font-size:1.2rem">{{ plan.name }}</div>
+      <div style="font-size:2rem;font-weight:700;color:var(--accent);margin:.5rem 0">
+        {% if plan.price_usd == 0 %}Бесплатно{% else %}${{ plan.price_usd }}/мес{% endif %}
+      </div>
+      <div style="color:var(--text3);font-size:.8rem;margin-bottom:1rem">
+        {{ "{:,}".format(plan.free_tokens).replace(",", " ") }} токенов | {{ plan.rate_limit }}
+      </div>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem">
+        {% for f in plan.features %}
+        <li style="font-size:.85rem;color:var(--text2)">✅ {{ f }}</li>
+        {% endfor %}
+      </ul>
+      <a href="/login" class="btn {% if plan_id == 'pro' %}btn-primary{% else %}btn-outline{% endif %}" style="width:100%;text-align:center;text-decoration:none;display:block">
+        {% if plan.price_usd == 0 %}Начать бесплатно{% else %}Выбрать план{% endif %}
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Цены на модели -->
+  <h2 style="margin-bottom:1.5rem">🤖 Цены на модели (USD за 1M токенов)</h2>
+  
+  {% for mode_id in ['text', 'images', 'video'] %}
+  <div style="margin-bottom:2.5rem">
+    <h3 style="margin-bottom:1rem;color:var(--text2)">
+      {{ {'text':'💬 Текст', 'images':'🎨 Изображения', 'video':'🎬 Видео'}[mode_id] }}
+    </h3>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.875rem">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:.75rem;color:var(--text3)">Модель</th>
+            <th style="text-align:left;padding:.75rem;color:var(--text3)">Провайдер</th>
+            <th style="text-align:right;padding:.75rem;color:var(--text3)">Input / 1M</th>
+            <th style="text-align:right;padding:.75rem;color:var(--text3)">Output / 1M</th>
+            <th style="text-align:center;padding:.75rem;color:var(--text3)">Контекст</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in pricing[mode_id] %}
+          <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+            <td style="padding:.6rem .75rem;font-weight:500">
+              {{ m.name }}
+              {% if m.is_free %}<span style="background:var(--green);color:#000;font-size:.65rem;padding:.1rem .4rem;border-radius:3px;margin-left:.4rem">БЕСПЛАТНО</span>{% endif %}
+            </td>
+            <td style="padding:.6rem .75rem;color:var(--text3)">{{ m.provider }}</td>
+            <td style="padding:.6rem .75rem;text-align:right;font-family:var(--font-mono)">
+              {% if m.is_free %}<span style="color:var(--green)">$0</span>{% else %}<span style="color:var(--text2)">${{ m.input_per_1m_usd }}</span>{% endif %}
+            </td>
+            <td style="padding:.6rem .75rem;text-align:right;font-family:var(--font-mono)">${{ m.output_per_1m_usd }}</td>
+            <td style="padding:.6rem .75rem;text-align:center;color:var(--text3)">
+              {% if m.context_k > 0 %}{{ m.context_k }}K{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Пополнение -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;text-align:center;margin-top:2rem">
+    <h3 style="margin-bottom:.5rem">💳 Пополнение баланса</h3>
+    <p style="color:var(--text2);margin-bottom:1.5rem">Минимальное пополнение: $5 | Принимаем: TON, USDT TRC20</p>
+    <a href="/dashboard" class="btn btn-primary">Пополнить баланс →</a>
+  </div>
+</div>
+{% endblock %}

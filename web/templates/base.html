@@ -21,13 +21,22 @@
     <div class="navbar-links">
       <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Чат</a>
       <a href="/models" class="nav-link {% if request.url.path == '/models' %}active{% endif %}">Модели</a>
-      <a href="/status" class="nav-link {% if request.url.path == '/status' %}active{% endif %}">Статус</a>
+      <a href="/pricing" class="nav-link {% if request.url.path == '/pricing' %}active{% endif %}">Цены</a>
+      <a href="/files/" class="nav-link">Файлы</a>
       <a href="/docs" class="nav-link" target="_blank">API</a>
     </div>
-    <div class="navbar-status">
-      <span class="status-dot {% if browser_running %}online{% else %}offline{% endif %}"></span>
-      <span class="status-text">{{ mode | upper }}</span>
+    <div class="navbar-status" style="gap:.75rem">
+      <span class="status-dot" id="statusDot"></span>
+    <script>document.getElementById('statusDot').className='status-dot '+(typeof browser_running!=='undefined'&&browser_running?'online':'offline');</script>
+      <a href="/dashboard" id="navUser" class="nav-link" style="display:none">👤 Кабинет</a>
+      <a href="/login" id="navLogin" class="btn btn-outline btn-sm">Войти</a>
     </div>
+    <script>
+      if(localStorage.getItem('iis_token')) {
+        document.getElementById('navUser').style.display='block';
+        document.getElementById('navLogin').style.display='none';
+      }
+    </script>
   </nav>
 
   <main class="main-content">

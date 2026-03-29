@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}IIStudio — Кабинет{% endblock %}
+{% block content %}
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1>👋 Привет, {{ user.username }}!</h1>
+      <p class="page-subtitle">{{ user.email }} | План: <span style="color:var(--accent)">{{ user.plan | upper }}</span></p>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="logout()">Выйти</button>
+  </div>
+
+  <div class="status-grid">
+    <!-- Баланс -->
+    <div class="status-card">
+      <h3 class="status-card-title">💰 Баланс</h3>
+      <div style="font-size:2rem;font-weight:700;color:var(--green)">${{ "%.4f"|format(user.balance_usd) }}</div>
+      <div style="color:var(--text2);margin-top:.5rem">Бесплатных токенов: <strong>{{ "{:,}".format(user.free_tokens).replace(",", " ") }}</strong></div>
+      <div style="margin-top:1rem;font-size:.8rem;color:var(--text3)">Потрачено: ${{ "%.4f"|format(user.total_spent) }} | Запросов: {{ user.requests_count }}</div>
+      <a href="/pricing" class="btn btn-outline btn-sm" style="margin-top:1rem">Пополнить</a>
+    </div>
+
+    <!-- Текущая сессия -->
+    <div class="status-card">
+      <h3 class="status-card-title">⚡ Быстрый старт</h3>
+      <div style="font-size:.85rem;color:var(--text2);line-height:1.8">
+        <div>1. Установи CLI:</div>
+        <code style="background:var(--bg3);padding:.2rem .5rem;border-radius:4px;font-family:var(--font-mono);font-size:.8rem">pip install iistudio</code>
+        <div style="margin-top:.5rem">2. Войди:</div>
+        <code style="background:var(--bg3);padding:.2rem .5rem;border-radius:4px;font-family:var(--font-mono);font-size:.8rem">iis auth login</code>
+        <div style="margin-top:.5rem">3. Спроси AI:</div>
+        <code style="background:var(--bg3);padding:.2rem .5rem;border-radius:4px;font-family:var(--font-mono);font-size:.8rem">iis "напиши hello world"</code>
+      </div>
+    </div>
+
+    <!-- API Токены -->
+    <div class="status-card status-card-wide">
+      <h3 class="status-card-title">🔑 API Токены</h3>
+      <div id="tokensList">Загрузка...</div>
+      <div style="margin-top:1rem;display:flex;gap:.5rem;align-items:center">
+        <input id="newTokenName" type="text" placeholder="Название токена" class="sidebar-select" style="max-width:200px">
+        <button class="btn btn-primary btn-sm" onclick="createToken()">+ Создать токен</button>
+      </div>
+      <div id="newTokenDisplay" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg3);border-radius:8px;border:1px solid var(--green)">
+        <div style="color:var(--green);font-weight:600;margin-bottom:.5rem">✅ Новый токен (сохрани — показывается ОДИН РАЗ!):</div>
+        <code id="newTokenValue" style="font-family:var(--font-mono);font-size:.85rem;word-break:break-all"></code>
+        <button class="btn btn-outline btn-sm" style="margin-top:.5rem" onclick="copyToken()">📋 Копировать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_TOKEN = localStorage.getItem('iis_token');
+if(!API_TOKEN) window.location.href = '/login';
+
+async function loadTokens() {
+  const r = await fetch('/api/tokens', {headers: {'Authorization': 'Bearer '+API_TOKEN}});
+  const d = await r.json();
+  const list = document.getElementById('tokensList');
+  if(!d.tokens || !d.tokens.length) { list.innerHTML = '<p style="color:var(--text3)">Нет токенов</p>'; return; }
+  list.innerHTML = d.tokens.map(t => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)">
+      <div>
+        <strong>${t.name}</strong>
+        <span style="font-family:var(--font-mono);font-size:.8rem;color:var(--text3);margin-left:.5rem">${t.prefix}</span>
+        <div style="font-size:.75rem;color:var(--text3)">Запросов: ${t.requests_count} | Создан: ${t.created_at.slice(0,10)}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="color:var(--red)" onclick="deleteToken('${t.id}')">Удалить</button>
+    </div>
+  `).join('');
+}
+
+async function createToken() {
+  const name = document.getElementById('newTokenName').value || 'Default';
+  const r = await fetch('/api/tokens', {method:'POST',headers:{'Authorization':'Bearer '+API_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({name})});
+  const d = await r.json();
+  document.getElementById('newTokenValue').textContent = d.token;
+  document.getElementById('newTokenDisplay').style.display = 'block';
+  loadTokens();
+}
+
+async function deleteToken(id) {
+  if(!confirm('Удалить токен?')) return;
+  await fetch(`/api/tokens/${id}`, {method:'DELETE',headers:{'Authorization':'Bearer '+API_TOKEN}});
+  loadTokens();
+}
+
+function copyToken() {
+  navigator.clipboard.writeText(document.getElementById('newTokenValue').textContent);
+  alert('Скопировано!');
+}
+
+function logout() {
+  localStorage.removeItem('iis_token');
+  localStorage.removeItem('iis_user');
+  window.location.href = '/login';
+}
+
+loadTokens();
+</script>
+{% endblock %}

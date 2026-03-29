@@ -573,6 +573,219 @@ def cmd_version(ctx):
     ctx.exit(0)
 
 
+# ── Auth группа ───────────────────────────────────────────────────────────────
+
+@cli.group("auth")
+def cmd_auth():
+    """Управление аутентификацией (login, logout, status, register)."""
+    pass
+
+
+@cmd_auth.command("login")
+@click.option("--token", default=None, help="API токен (sk-iis-...)")
+@click.option("--server", default="https://orproject.online", help="URL сервера IIStudio")
+def auth_login(token, server):
+    """Войти в IIStudio (получить токен на https://orproject.online/login).
+
+    \b
+    Примеры:
+      iis auth login
+      iis auth login --token sk-iis-abc123...
+      iis auth login --server https://orproject.online
+    """
+    import json as _json
+    from pathlib import Path
+    import httpx
+
+    config_dir = Path.home() / ".iistudio"
+    config_dir.mkdir(exist_ok=True)
+    config_file = config_dir / "config.json"
+
+    # Загружаем существующий конфиг
+    config = {}
+    if config_file.exists():
+        try:
+            config = _json.loads(config_file.read_text())
+        except Exception:
+            pass
+
+    if not token:
+        console.print(Panel(
+            f"[bold cyan]◈ IIStudio — Вход[/]\n\n"
+            f"1. Зарегистрируйся или войди на:\n"
+            f"   [cyan]{server}/login[/]\n\n"
+            f"2. Скопируй API токен (sk-iis-...)\n\n"
+            f"3. Запусти:\n"
+            f"   [green]iis auth login --token sk-iis-...[/]",
+            border_style="cyan",
+        ))
+        # Интерактивный ввод
+        token = console.input("[cyan]Введи API токен (sk-iis-...): [/]").strip()
+        if not token:
+            console.print("[red]Токен не введён[/]")
+            return
+
+    # Проверяем токен на сервере
+    console.print(f"[dim]Проверяем токен на {server}...[/]")
+    try:
+        r = httpx.get(
+            f"{server}/api/user/me",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            user = r.json()
+            config["token"] = token
+            config["server"] = server
+            config["email"] = user.get("email", "")
+            config["username"] = user.get("username", "")
+            config["plan"] = user.get("plan", "free")
+            config_file.write_text(_json.dumps(config, indent=2))
+            console.print(Panel(
+                f"[bold green]✅ Успешный вход![/]\n\n"
+                f"Пользователь: [cyan]{user.get('email')}[/]\n"
+                f"План: [yellow]{user.get('plan', 'free').upper()}[/]\n"
+                f"Баланс: [green]${user.get('balance_usd', 0):.4f}[/]\n"
+                f"Бесплатных токенов: [cyan]{user.get('free_tokens', 0):,}[/]\n\n"
+                f"[dim]Токен сохранён в ~/.iistudio/config.json[/]",
+                border_style="green",
+            ))
+            console.print("\n[dim]Теперь используй:[/]")
+            console.print("  [green]iis ask \"твой вопрос\"[/]    — задать вопрос AI")
+            console.print("  [green]iis chat[/]                 — интерактивный режим")
+        else:
+            console.print(f"[red]❌ Неверный токен (status={r.status_code})[/]")
+            console.print(f"[dim]Получи токен на {server}/login[/]")
+    except Exception as e:
+        console.print(f"[yellow]⚠ Сервер недоступен ({e})[/]")
+        console.print("[dim]Сохраняем токен локально без проверки...[/]")
+        config["token"] = token
+        config["server"] = server
+        config_file.write_text(_json.dumps(config, indent=2))
+        console.print("[green]Токен сохранён. Проверь подключение позже.[/]")
+
+
+@cmd_auth.command("logout")
+def auth_logout():
+    """Выйти из аккаунта (удалить сохранённый токен)."""
+    import json as _json
+    from pathlib import Path
+
+    config_file = Path.home() / ".iistudio" / "config.json"
+    if config_file.exists():
+        try:
+            config = _json.loads(config_file.read_text())
+            config.pop("token", None)
+            config_file.write_text(_json.dumps(config, indent=2))
+        except Exception:
+            pass
+    console.print("[green]✅ Вышли из аккаунта[/]")
+
+
+@cmd_auth.command("status")
+def auth_status():
+    """Показать текущий статус аутентификации."""
+    import json as _json
+    from pathlib import Path
+    import httpx
+
+    config_file = Path.home() / ".iistudio" / "config.json"
+    if not config_file.exists():
+        console.print("[yellow]Не авторизован. Запусти: iis auth login[/]")
+        return
+
+    try:
+        config = _json.loads(config_file.read_text())
+    except Exception:
+        console.print("[red]Ошибка чтения конфига[/]")
+        return
+
+    token = config.get("token", "")
+    server = config.get("server", "https://orproject.online")
+
+    if not token:
+        console.print("[yellow]Нет сохранённого токена. Запусти: iis auth login[/]")
+        return
+
+    console.print(f"[dim]Сервер: {server}[/]")
+    console.print(f"[dim]Токен: {token[:18]}...[/]")
+
+    try:
+        r = httpx.get(f"{server}/api/user/me", headers={"Authorization": f"Bearer {token}"}, timeout=10)
+        if r.status_code == 200:
+            user = r.json()
+            _print_status({
+                "version": settings.iistudio_version,
+                "env": user.get("plan", "free"),
+                "mode": "text",
+                "model": "claude-3-5-sonnet (default)",
+                "session_id": "local",
+                "messages": 0,
+                "proxy": {"current": server},
+                "cache": {"backend": "local", "size": 0, "ttl": 3600},
+            })
+            console.print(f"\n[bold]Аккаунт:[/] {user.get('email')}")
+            console.print(f"[bold]Баланс:[/]  [green]${user.get('balance_usd', 0):.4f}[/]")
+            console.print(f"[bold]Токены:[/]  [cyan]{user.get('free_tokens', 0):,} бесплатных[/]")
+        else:
+            console.print("[red]Токен недействителен. Запусти: iis auth login[/]")
+    except Exception as e:
+        console.print(f"[yellow]Сервер недоступен: {e}[/]")
+        console.print(f"[dim]Локальный конфиг: email={config.get('email', '?')}[/]")
+
+
+@cmd_auth.command("register")
+@click.option("--server", default="https://orproject.online", help="URL сервера")
+def auth_register(server):
+    """Зарегистрироваться в IIStudio."""
+    import httpx, json as _json
+    from pathlib import Path
+
+    console.print(Panel(
+        f"[bold cyan]◈ IIStudio — Регистрация[/]\n\n"
+        f"Регистрируйся прямо в CLI или на сайте:\n"
+        f"[cyan]{server}/login[/]",
+        border_style="cyan",
+    ))
+
+    email = console.input("[cyan]Email: [/]").strip()
+    password = console.input("[cyan]Пароль (мин. 6 символов): [/]", password=True).strip()
+    username = console.input("[cyan]Имя пользователя (Enter = пропустить): [/]").strip()
+
+    if not email or not password:
+        console.print("[red]Email и пароль обязательны[/]")
+        return
+
+    try:
+        r = httpx.post(
+            f"{server}/api/auth/register",
+            json={"email": email, "password": password, "username": username},
+            timeout=15,
+        )
+        d = r.json()
+        if d.get("success"):
+            token = d["api_token"]
+            config_dir = Path.home() / ".iistudio"
+            config_dir.mkdir(exist_ok=True)
+            config_file = config_dir / "config.json"
+            config = {"token": token, "server": server, "email": email, "username": username or email.split("@")[0]}
+            config_file.write_text(_json.dumps(config, indent=2))
+
+            console.print(Panel(
+                f"[bold green]✅ Аккаунт создан![/]\n\n"
+                f"Email: [cyan]{email}[/]\n"
+                f"Бесплатных токенов: [green]50 000[/]\n\n"
+                f"[bold]API токен (сохрани!):[/]\n"
+                f"[cyan]{token}[/]\n\n"
+                f"[dim]Токен сохранён в ~/.iistudio/config.json[/]",
+                border_style="green",
+            ))
+        else:
+            console.print(f"[red]❌ {d.get('detail', 'Ошибка регистрации')}[/]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/]")
+
+
 # ── Task-трекер ───────────────────────────────────────────────────────────────
 
 @cli.command("task")

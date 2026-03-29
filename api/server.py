@@ -76,6 +76,15 @@ def create_app() -> FastAPI:
     app.include_router(chat.router, prefix="/api", tags=["chat"])
     app.include_router(status.router, prefix="/api", tags=["status"])
 
+    # Аутентификация + токены + баланс + цены
+    from api.routes.auth_routes import router as auth_router, tokens_router, balance_router, user_router
+    from api.routes.pricing import router as pricing_router
+    app.include_router(auth_router, prefix="/api")
+    app.include_router(tokens_router, prefix="/api")
+    app.include_router(balance_router, prefix="/api")
+    app.include_router(user_router, prefix="/api")
+    app.include_router(pricing_router, prefix="/api")
+
     # ── Веб-интерфейс ─────────────────────────────────────────────────────────
     import os
     from pathlib import Path
@@ -160,6 +169,49 @@ def create_app() -> FastAPI:
                     "total": len(ALL_MODELS),
                 },
             )
+
+        def _tmpl(name: str, ctx: dict, request: Request):
+            """Безопасный рендер шаблона через Jinja2 напрямую."""
+            from jinja2 import Environment, FileSystemLoader
+            from fastapi.responses import HTMLResponse
+            env = Environment(loader=FileSystemLoader(str(templates_dir)))
+            tmpl = env.get_template(name)
+            html = tmpl.render(request=request, **ctx)
+            return HTMLResponse(html)
+
+        @app.get("/login", include_in_schema=False)
+        async def web_login(request: Request):
+            return _tmpl("login.html", {
+                "version": settings.iistudio_version,
+                "mode": "text", "browser_running": False, "status": {},
+            }, request)
+
+        @app.get("/dashboard", include_in_schema=False)
+        async def web_dashboard(request: Request):
+            return _tmpl("dashboard.html", {
+                "version": settings.iistudio_version,
+                "mode": "text", "browser_running": False, "status": {},
+                "user": {"username": "User", "email": "", "plan": "free",
+                         "balance_usd": 0.0, "free_tokens": 0, "total_spent": 0.0, "requests_count": 0},
+            }, request)
+
+        @app.get("/pricing", include_in_schema=False)
+        async def web_pricing(request: Request):
+            from api.routes.pricing import PRICING, PLANS
+            by_mode: dict = {"text": [], "images": [], "video": []}
+            for p in PRICING:
+                m = p["mode"]
+                if m in by_mode:
+                    by_mode[m].append({
+                        "name": p["name"], "provider": p["provider"],
+                        "input_per_1m_usd": p["input"], "output_per_1m_usd": p["output"],
+                        "is_free": p["free"], "context_k": p.get("context_k", 0),
+                    })
+            return _tmpl("pricing.html", {
+                "version": settings.iistudio_version,
+                "mode": "text", "browser_running": False, "status": {},
+                "plans": PLANS, "pricing": by_mode,
+            }, request)
 
         @app.get("/status", include_in_schema=False)
         async def web_status(request: Request):

@@ -1,0 +1,30 @@
+{
+  "567384b03d5ddf3aa73c00892b9d8872": [
+    {
+      "id": "f38ac67f16a61ba0",
+      "user_id": "567384b03d5ddf3aa73c00892b9d8872",
+      "email": "test@test.com",
+      "name": "Default",
+      "token": "sk-iis-3f056194495fde9b000afff68de14fe4b02e489382da6adb",
+      "prefix": "sk-iis-3f05619",
+      "is_active": true,
+      "requests_count": 1,
+      "last_used": "2026-03-29T10:28:54.524817+00:00",
+      "created_at": "2026-03-29T10:28:54.524152+00:00"
+    }
+  ],
+  "b6e1bed2eda69e06975e1a20c4b8d4f4": [
+    {
+      "id": "39923c69366d2842",
+      "user_id": "b6e1bed2eda69e06975e1a20c4b8d4f4",
+      "email": "demo2@test.com",
+      "name": "Default",
+      "token": "sk-iis-54ce060e96838ac14b191fb7b61c616243b84cb8c0088dda",
+      "prefix": "sk-iis-54ce060",
+      "is_active": true,
+      "requests_count": 0,
+      "last_used": null,
+      "created_at": "2026-03-29T10:29:17.047298+00:00"
+    }
+  ]
+}

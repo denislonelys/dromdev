@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}IIStudio — Вход{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 52px)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2.5rem;width:100%;max-width:420px">
+    
+    <div style="text-align:center;margin-bottom:2rem">
+      <div style="font-size:2.5rem;color:var(--accent)">◈</div>
+      <h2 style="margin-top:.5rem">IIStudio</h2>
+      <p style="color:var(--text3);font-size:.9rem">AI Dev Tool — Войти или зарегистрироваться</p>
+    </div>
+
+    <div style="display:flex;gap:.5rem;margin-bottom:1.5rem">
+      <button id="tabLogin" class="btn btn-primary" style="flex:1" onclick="showTab('login')">Войти</button>
+      <button id="tabReg" class="btn btn-outline" style="flex:1" onclick="showTab('register')">Регистрация</button>
+    </div>
+
+    <!-- Форма входа -->
+    <div id="loginForm">
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.85rem;color:var(--text2);display:block;margin-bottom:.3rem">Email</label>
+        <input id="loginEmail" type="email" placeholder="your@email.com" style="width:100%;padding:.6rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font)">
+      </div>
+      <div style="margin-bottom:1.5rem">
+        <label style="font-size:.85rem;color:var(--text2);display:block;margin-bottom:.3rem">Пароль</label>
+        <input id="loginPassword" type="password" placeholder="••••••••" style="width:100%;padding:.6rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font)">
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Войти</button>
+    </div>
+
+    <!-- Форма регистрации -->
+    <div id="registerForm" style="display:none">
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.85rem;color:var(--text2);display:block;margin-bottom:.3rem">Email</label>
+        <input id="regEmail" type="email" placeholder="your@email.com" style="width:100%;padding:.6rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font)">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.85rem;color:var(--text2);display:block;margin-bottom:.3rem">Пароль (мин. 6 символов)</label>
+        <input id="regPassword" type="password" placeholder="••••••••" style="width:100%;padding:.6rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font)">
+      </div>
+      <div style="margin-bottom:1.5rem">
+        <label style="font-size:.85rem;color:var(--text2);display:block;margin-bottom:.3rem">Имя пользователя (опционально)</label>
+        <input id="regUsername" type="text" placeholder="yourname" style="width:100%;padding:.6rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font)">
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:1rem;margin-bottom:1.5rem;font-size:.82rem;color:var(--text2)">
+        🎁 <strong>При регистрации:</strong> 50 000 бесплатных токенов + API ключ
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="doRegister()">Создать аккаунт</button>
+    </div>
+
+    <!-- Результат -->
+    <div id="result" style="margin-top:1rem;display:none"></div>
+
+    <!-- Показ токена после регистрации -->
+    <div id="tokenBox" style="display:none;margin-top:1.5rem;padding:1rem;background:var(--bg3);border:1px solid var(--green);border-radius:8px">
+      <div style="color:var(--green);font-weight:600;margin-bottom:.5rem">✅ Аккаунт создан! Сохрани API токен:</div>
+      <code id="tokenValue" style="font-family:var(--font-mono);font-size:.82rem;word-break:break-all;color:var(--accent2)"></code>
+      <div style="margin-top:.75rem;display:flex;gap:.5rem">
+        <button class="btn btn-outline btn-sm" onclick="copyTokenReg()">📋 Копировать</button>
+        <button class="btn btn-primary btn-sm" onclick="goToDashboard()">Перейти в кабинет →</button>
+      </div>
+      <div style="margin-top:.75rem;font-size:.8rem;color:var(--text3)">
+        Используй в CLI:<br>
+        <code style="color:var(--accent)">iis auth login --token <span id="tokenShort"></span></code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.getElementById('loginForm').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab==='register' ? 'block' : 'none';
+  document.getElementById('tabLogin').className = tab==='login' ? 'btn btn-primary' : 'btn btn-outline';
+  document.getElementById('tabReg').className = tab==='register' ? 'btn btn-primary' : 'btn btn-outline';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('tokenBox').style.display = 'none';
+}
+
+function showResult(msg, ok=true) {
+  const el = document.getElementById('result');
+  el.style.display = 'block';
+  el.style.color = ok ? 'var(--green)' : 'var(--red)';
+  el.textContent = msg;
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  if(!email || !password) { showResult('Заполни все поля', false); return; }
+  
+  const r = await fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password})});
+  const d = await r.json();
+  
+  if(d.success) {
+    const token = d.tokens?.[0];
+    if(token) {
+      // Нет полного токена при логине — перенаправляем на дашборд
+      // Нужен токен для запросов — берём из localStorage или создаём
+    }
+    showResult('✅ Успешный вход!');
+    // Сохраняем данные (при логине токен не показывается полностью)
+    localStorage.setItem('iis_user', JSON.stringify(d.user));
+    // Перенаправляем
+    setTimeout(() => window.location.href = '/dashboard', 1000);
+  } else {
+    showResult(d.detail || 'Ошибка входа', false);
+  }
+}
+
+async function doRegister() {
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPassword').value;
+  const username = document.getElementById('regUsername').value;
+  if(!email || !password) { showResult('Заполни email и пароль', false); return; }
+  
+  const r = await fetch('/api/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password, username})});
+  const d = await r.json();
+  
+  if(d.success) {
+    localStorage.setItem('iis_token', d.api_token);
+    localStorage.setItem('iis_user', JSON.stringify(d.user));
+    document.getElementById('tokenValue').textContent = d.api_token;
+    document.getElementById('tokenShort').textContent = d.api_token;
+    document.getElementById('tokenBox').style.display = 'block';
+    document.getElementById('registerForm').style.display = 'none';
+  } else {
+    showResult(d.detail || 'Ошибка регистрации', false);
+  }
+}
+
+function copyTokenReg() {
+  navigator.clipboard.writeText(document.getElementById('tokenValue').textContent);
+  alert('Токен скопирован!');
+}
+
+function goToDashboard() {
+  window.location.href = '/dashboard';
+}
+
+// Если уже залогинен — перенаправляем
+if(localStorage.getItem('iis_token')) window.location.href = '/dashboard';
+</script>
+{% endblock %}

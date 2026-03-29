@@ -1,0 +1,32 @@
+{
+  "test@test.com": {
+    "id": "567384b03d5ddf3aa73c00892b9d8872",
+    "email": "test@test.com",
+    "username": "testuser",
+    "password_hash": "46937efd91f89184d78a37812e8a7dc5:f308182f10244ef70d6986eb71317f97c05139e944e797c8aaae8efef0b7a741",
+    "is_active": true,
+    "is_admin": false,
+    "plan": "free",
+    "balance_usd": 0.0,
+    "free_tokens": 50000,
+    "total_spent": 0.0,
+    "requests_count": 0,
+    "created_at": "2026-03-29T10:28:54.524109+00:00",
+    "last_login": null
+  },
+  "demo2@test.com": {
+    "id": "b6e1bed2eda69e06975e1a20c4b8d4f4",
+    "email": "demo2@test.com",
+    "username": "demo",
+    "password_hash": "5a67d318d769ad45dbee7194f6975ee9:7442b231acb170930ee91ad9ec1518425ad8ac711db5e6bce892da463c9c1188",
+    "is_active": true,
+    "is_admin": false,
+    "plan": "free",
+    "balance_usd": 0.0,
+    "free_tokens": 50000,
+    "total_spent": 0.0,
+    "requests_count": 0,
+    "created_at": "2026-03-29T10:29:17.047267+00:00",
+    "last_login": null
+  }
+}
