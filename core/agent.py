@@ -88,6 +88,9 @@ class IIStudioAgent:
         self._started = True
         logger.info("✅ IIStudio готов")
 
+        # Запускаем фоновый health check KiroAI
+        asyncio.create_task(self._kiro_health_loop())
+
     async def stop(self) -> None:
         self.session.save()
         await self._cache.stop()
@@ -323,6 +326,39 @@ class IIStudioAgent:
             "proxy":           {"current": None},
             "cache":           cache_info,
         }
+
+    async def _kiro_health_loop(self) -> None:
+        """Фоновый health check + авто-переподключение KiroAI."""
+        await asyncio.sleep(60)  # Первая проверка через 60с
+        fail = 0
+        while self._started:
+            try:
+                async with httpx.AsyncClient(timeout=20) as client:
+                    r = await client.post(
+                        f"http://localhost:20128/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {OMNI_API_KEY}", "Content-Type": "application/json"},
+                        json={"model": OMNI_MODEL, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 3},
+                    )
+                    if r.status_code == 200:
+                        fail = 0
+                    else:
+                        fail += 1
+                        logger.warning("KiroAI check fail {}/3: status={}", fail, r.status_code)
+            except Exception as e:
+                fail += 1
+                logger.warning("KiroAI check fail {}/3: {}", fail, e)
+
+            if fail >= 3:
+                logger.warning("KiroAI недоступен — пробуем переподключить...")
+                try:
+                    from core.kiro_reconnect import reconnect_kiro
+                    ok = await reconnect_kiro()
+                    logger.info("Переподключение KiroAI: {}", "✅ OK" if ok else "❌ Failed")
+                except Exception as e:
+                    logger.error("Ошибка переподключения: {}", e)
+                fail = 0
+
+            await asyncio.sleep(120)  # Проверяем каждые 2 минуты
 
     def get_history(self) -> List[Dict[str, Any]]: return self.session.history
     def clear_history(self) -> None: self.session.clear()

@@ -4,48 +4,83 @@
 <div class="page-container">
   <div class="page-header">
     <div>
-      <h1>👋 Привет, {{ user.username }}!</h1>
-      <p class="page-subtitle">{{ user.email }} | План: <span style="color:var(--accent)">{{ user.plan | upper }}</span></p>
+      <h1>👤 Личный кабинет</h1>
+      <p class="page-subtitle" id="userEmail">Загрузка...</p>
     </div>
     <button class="btn btn-outline btn-sm" onclick="logout()">Выйти</button>
   </div>
 
-  <div class="status-grid">
-    <!-- Баланс -->
+  <!-- Баланс и статистика -->
+  <div class="status-grid" style="margin-bottom:2rem">
     <div class="status-card">
       <h3 class="status-card-title">💰 Баланс</h3>
-      <div style="font-size:2rem;font-weight:700;color:var(--green)">${{ "%.4f"|format(user.balance_usd) }}</div>
-      <div style="color:var(--text2);margin-top:.5rem">Бесплатных токенов: <strong>{{ "{:,}".format(user.free_tokens).replace(",", " ") }}</strong></div>
-      <div style="margin-top:1rem;font-size:.8rem;color:var(--text3)">Потрачено: ${{ "%.4f"|format(user.total_spent) }} | Запросов: {{ user.requests_count }}</div>
-      <a href="/pricing" class="btn btn-outline btn-sm" style="margin-top:1rem">Пополнить</a>
+      <div style="font-size:2.5rem;font-weight:700;color:var(--green)" id="balance">$0.0000</div>
+      <div style="color:var(--text2);margin:.5rem 0">Бесплатных токенов:</div>
+      <div style="font-size:1.2rem;color:var(--accent2)" id="freeTokens">0</div>
+      <div style="margin-top:1rem;font-size:.8rem;color:var(--text3)">
+        <div>Потрачено: <span id="totalSpent">$0.0000</span></div>
+        <div>Всего запросов: <span id="requestsCount">0</span></div>
+      </div>
+      <a href="/pricing" class="btn btn-primary btn-sm" style="margin-top:1rem;display:inline-block;text-decoration:none">💳 Пополнить</a>
     </div>
 
-    <!-- Текущая сессия -->
+    <div class="status-card">
+      <h3 class="status-card-title">📊 Статистика</h3>
+      <div class="status-rows" id="statsRows">
+        <div class="status-row"><span class="status-key">Аккаунт</span><span class="status-val" id="userPlan">—</span></div>
+        <div class="status-row"><span class="status-key">Создан</span><span class="status-val" id="createdAt">—</span></div>
+        <div class="status-row"><span class="status-key">Токенов в ключах</span><span class="status-val" id="tokensCount">—</span></div>
+        <div class="status-row"><span class="status-key">Модель</span><span class="status-val" style="color:var(--accent)">Claude Sonnet 4.5</span></div>
+        <div class="status-row"><span class="status-key">Стоимость</span><span class="status-val" style="color:var(--green)">Бесплатно</span></div>
+      </div>
+    </div>
+
     <div class="status-card">
       <h3 class="status-card-title">⚡ Быстрый старт</h3>
-      <div style="font-size:.85rem;color:var(--text2);line-height:1.8">
-        <div>1. Установи CLI:</div>
-        <code style="background:var(--bg3);padding:.2rem .5rem;border-radius:4px;font-family:var(--font-mono);font-size:.8rem">pip install iistudio</code>
-        <div style="margin-top:.5rem">2. Войди:</div>
-        <code style="background:var(--bg3);padding:.2rem .5rem;border-radius:4px;font-family:var(--font-mono);font-size:.8rem">iis auth login</code>
-        <div style="margin-top:.5rem">3. Спроси AI:</div>
-        <code style="background:var(--bg3);padding:.2rem .5rem;border-radius:4px;font-family:var(--font-mono);font-size:.8rem">iis "напиши hello world"</code>
+      <div style="font-size:.85rem;color:var(--text2);line-height:2">
+        <div><b>1. Установи CLI:</b></div>
+        <code style="background:var(--bg3);padding:.2rem .5rem;border-radius:4px;font-size:.8rem;font-family:var(--font-mono)">pip install iistudio</code>
+        <div style="margin-top:.5rem"><b>2. Войди:</b></div>
+        <code style="background:var(--bg3);padding:.2rem .5rem;border-radius:4px;font-size:.8rem;font-family:var(--font-mono)">iis auth login</code>
+        <div style="margin-top:.5rem"><b>3. Спроси AI:</b></div>
+        <code style="background:var(--bg3);padding:.2rem .5rem;border-radius:4px;font-size:.8rem;font-family:var(--font-mono)">iis "напиши hello world"</code>
       </div>
     </div>
+  </div>
 
-    <!-- API Токены -->
-    <div class="status-card status-card-wide">
-      <h3 class="status-card-title">🔑 API Токены</h3>
-      <div id="tokensList">Загрузка...</div>
-      <div style="margin-top:1rem;display:flex;gap:.5rem;align-items:center">
-        <input id="newTokenName" type="text" placeholder="Название токена" class="sidebar-select" style="max-width:200px">
-        <button class="btn btn-primary btn-sm" onclick="createToken()">+ Создать токен</button>
+  <!-- API Токены -->
+  <div class="status-card" style="margin-bottom:2rem">
+    <h3 class="status-card-title">🔑 API Токены</h3>
+    <p style="color:var(--text3);font-size:.85rem;margin-bottom:1rem">
+      Используй токен для аутентификации: <code style="font-family:var(--font-mono)">iis auth login --token sk-iis-...</code>
+    </p>
+    <div id="tokensList">
+      <div style="color:var(--text3)">Загрузка...</div>
+    </div>
+    <div style="margin-top:1.5rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+      <input id="newTokenName" type="text" placeholder="Название токена (напр. main)" 
+        style="padding:.5rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);width:200px">
+      <button class="btn btn-primary" onclick="createToken()">+ Создать токен</button>
+    </div>
+    <div id="newTokenDisplay" style="display:none;margin-top:1.5rem;padding:1.25rem;background:var(--bg3);border:1px solid var(--green);border-radius:var(--radius)">
+      <div style="color:var(--green);font-weight:600;margin-bottom:.75rem">✅ Токен создан! Сохрани — показывается один раз:</div>
+      <code id="newTokenValue" style="font-family:var(--font-mono);font-size:.85rem;word-break:break-all;color:var(--accent2);display:block;padding:.5rem;background:var(--bg2);border-radius:6px"></code>
+      <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="copyToken()">📋 Скопировать</button>
+        <button class="btn btn-outline btn-sm" onclick="copyLoginCmd()">💻 Скопировать команду входа</button>
       </div>
-      <div id="newTokenDisplay" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg3);border-radius:8px;border:1px solid var(--green)">
-        <div style="color:var(--green);font-weight:600;margin-bottom:.5rem">✅ Новый токен (сохрани — показывается ОДИН РАЗ!):</div>
-        <code id="newTokenValue" style="font-family:var(--font-mono);font-size:.85rem;word-break:break-all"></code>
-        <button class="btn btn-outline btn-sm" style="margin-top:.5rem" onclick="copyToken()">📋 Копировать</button>
+      <div style="margin-top:.75rem;font-size:.8rem;color:var(--text3)">
+        Команда для CLI:<br>
+        <code id="loginCmd" style="color:var(--accent);font-family:var(--font-mono)"></code>
       </div>
+    </div>
+  </div>
+
+  <!-- История использования -->
+  <div class="status-card">
+    <h3 class="status-card-title">📈 История запросов</h3>
+    <div id="usageHistory" style="color:var(--text3);font-size:.875rem">
+      Загрузка...
     </div>
   </div>
 </div>
@@ -54,35 +89,98 @@
 const API_TOKEN = localStorage.getItem('iis_token');
 if(!API_TOKEN) window.location.href = '/login';
 
+const API_BASE = window.location.origin;
+
+async function loadProfile() {
+  try {
+    const r = await fetch('/api/user/me', {headers: {'Authorization': 'Bearer '+API_TOKEN}});
+    if(r.status === 401) { logout(); return; }
+    const user = await r.json();
+    
+    document.getElementById('userEmail').textContent = user.email + ' | ' + (user.username || '');
+    document.getElementById('balance').textContent = '$' + (user.balance_usd||0).toFixed(4);
+    document.getElementById('freeTokens').textContent = (user.free_tokens||0).toLocaleString('ru') + ' токенов';
+    document.getElementById('totalSpent').textContent = '$' + (user.total_spent||0).toFixed(4);
+    document.getElementById('requestsCount').textContent = user.requests_count || 0;
+    document.getElementById('userPlan').textContent = (user.plan||'free').toUpperCase();
+    document.getElementById('tokensCount').textContent = user.tokens_count || 0;
+    if(user.created_at) {
+      document.getElementById('createdAt').textContent = new Date(user.created_at).toLocaleDateString('ru');
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
 async function loadTokens() {
   const r = await fetch('/api/tokens', {headers: {'Authorization': 'Bearer '+API_TOKEN}});
-  const d = await r.json();
+  const data = await r.json();
   const list = document.getElementById('tokensList');
-  if(!d.tokens || !d.tokens.length) { list.innerHTML = '<p style="color:var(--text3)">Нет токенов</p>'; return; }
-  list.innerHTML = d.tokens.map(t => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)">
+  
+  if(!data.tokens || !data.tokens.length) {
+    list.innerHTML = '<p style="color:var(--text3)">Нет токенов. Создай первый!</p>';
+    return;
+  }
+  
+  list.innerHTML = data.tokens.map(t => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--border)">
       <div>
-        <strong>${t.name}</strong>
-        <span style="font-family:var(--font-mono);font-size:.8rem;color:var(--text3);margin-left:.5rem">${t.prefix}</span>
-        <div style="font-size:.75rem;color:var(--text3)">Запросов: ${t.requests_count} | Создан: ${t.created_at.slice(0,10)}</div>
+        <strong style="color:var(--text)">${t.name}</strong>
+        <span style="font-family:var(--font-mono);font-size:.8rem;color:var(--accent2);margin-left:.75rem">${t.prefix}</span>
+        <div style="font-size:.75rem;color:var(--text3);margin-top:.2rem">
+          Создан: ${new Date(t.created_at).toLocaleDateString('ru')} | 
+          Запросов: ${t.requests_count} | 
+          ${t.last_used ? 'Использован: '+new Date(t.last_used).toLocaleDateString('ru') : 'Не использован'}
+        </div>
       </div>
-      <button class="btn btn-outline btn-sm" style="color:var(--red)" onclick="deleteToken('${t.id}')">Удалить</button>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-outline btn-sm" onclick="copyLoginCmdById('${t.prefix}')" title="Копировать команду">💻</button>
+        <button class="btn btn-outline btn-sm" style="color:var(--red)" onclick="deleteToken('${t.id}')">🗑</button>
+      </div>
     </div>
   `).join('');
 }
 
+async function loadUsage() {
+  const el = document.getElementById('usageHistory');
+  try {
+    const r = await fetch('/api/user/me', {headers: {'Authorization': 'Bearer '+API_TOKEN}});
+    const user = await r.json();
+    el.innerHTML = `
+      <div class="status-rows">
+        <div class="status-row"><span class="status-key">Всего токенов потрачено</span><span class="status-val">${((user.requests_count||0) * 2000).toLocaleString('ru')}</span></div>
+        <div class="status-row"><span class="status-key">Всего запросов</span><span class="status-val">${user.requests_count||0}</span></div>
+        <div class="status-row"><span class="status-key">Потрачено USD</span><span class="status-val text-green">$${(user.total_spent||0).toFixed(4)}</span></div>
+        <div class="status-row"><span class="status-key">Стоимость через KiroAI</span><span class="status-val text-green">$0.0000 (бесплатно!)</span></div>
+      </div>
+    `;
+  } catch(e) {
+    el.textContent = 'Нет данных';
+  }
+}
+
 async function createToken() {
   const name = document.getElementById('newTokenName').value || 'Default';
-  const r = await fetch('/api/tokens', {method:'POST',headers:{'Authorization':'Bearer '+API_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({name})});
+  const r = await fetch('/api/tokens', {
+    method: 'POST',
+    headers: {'Authorization': 'Bearer '+API_TOKEN, 'Content-Type': 'application/json'},
+    body: JSON.stringify({name})
+  });
   const d = await r.json();
-  document.getElementById('newTokenValue').textContent = d.token;
-  document.getElementById('newTokenDisplay').style.display = 'block';
-  loadTokens();
+  if(d.success) {
+    localStorage.setItem('iis_token', d.token);
+    document.getElementById('newTokenValue').textContent = d.token;
+    document.getElementById('loginCmd').textContent = `iis auth login --token ${d.token}`;
+    document.getElementById('newTokenDisplay').style.display = 'block';
+    loadTokens();
+  } else {
+    alert(d.detail || 'Ошибка создания токена');
+  }
 }
 
 async function deleteToken(id) {
   if(!confirm('Удалить токен?')) return;
-  await fetch(`/api/tokens/${id}`, {method:'DELETE',headers:{'Authorization':'Bearer '+API_TOKEN}});
+  await fetch(`/api/tokens/${id}`, {method:'DELETE', headers:{'Authorization':'Bearer '+API_TOKEN}});
   loadTokens();
 }
 
@@ -91,12 +189,25 @@ function copyToken() {
   alert('Скопировано!');
 }
 
+function copyLoginCmd() {
+  navigator.clipboard.writeText(document.getElementById('loginCmd').textContent);
+  alert('Команда скопирована!');
+}
+
+function copyLoginCmdById(prefix) {
+  navigator.clipboard.writeText(`iis auth login  # токен: ${prefix}...`);
+  alert('Скопировано! Используй свой полный токен.');
+}
+
 function logout() {
   localStorage.removeItem('iis_token');
   localStorage.removeItem('iis_user');
   window.location.href = '/login';
 }
 
+// Загружаем всё
+loadProfile();
 loadTokens();
+loadUsage();
 </script>
 {% endblock %}
