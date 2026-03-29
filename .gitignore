@@ -24,3 +24,8 @@ output/
 
 # Docker
 docker/nginx/ssl/
+dromdev
+.iistudio/sessions/
+.iistudio/users.json
+.iistudio/api_tokens.json
+.iistudio/arena_accounts.json
