@@ -231,8 +231,14 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
     agent = IIStudioAgent(settings, workdir=wd)
     await agent.start()
 
-    current_model = model_id or list(MODELS.keys())[0]
-    model_name = MODELS.get(current_model, {}).get("name", current_model)
+    # ТОЛЬКО Sonnet и Opus модели
+    available_models = {
+        "claude-sonnet-4-6": {"name": "Claude Sonnet 4.6", "provider": "Anthropic"},
+        "claude-opus-4-6": {"name": "Claude Opus 4.6", "provider": "Anthropic"}
+    }
+    
+    current_model = model_id if model_id and model_id in available_models else list(available_models.keys())[0]
+    model_name = available_models.get(current_model, {}).get("name", current_model)
     
     # Инициализация сессии
     session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -240,6 +246,14 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
     token_used = 0
     sessions_dir = Path("./.iistudio/sessions")
     sessions_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Список всех команд для подсказок
+    all_commands = [
+        "ask", "clear", "compare", "config", "cache", "files", "fix", "history", 
+        "memory", "mcp", "mode", "model", "models", "plan", "prune", "proxy", 
+        "review", "screenshot", "skills", "sessions", "stream", "subagents", 
+        "status", "task", "tasks", "theme", "version", "yolo", "help", "exit"
+    ]
 
     try:
         # Выводим информацию о рабочей директории
@@ -250,7 +264,7 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
             f"[bold cyan]◈ IIStudio v{settings.iistudio_version}[/]\n"
             f"Модель: [magenta]{model_name}[/] | Проект: [yellow]{wd.name}[/] | Сессия: [cyan]{session_id}[/]\n"
             f"Контекст: [yellow]{token_used}[/]/[bold]{token_budget}[/] tokens\n\n"
-            f"[dim]Напиши запрос или /help для команд. Агент умеет читать/писать файлы и запускать команды.[/]",
+            f"[dim]Напиши запрос или /help для команд. Введи / для подсказок.[/]",
             border_style="cyan",
         ))
 
@@ -265,6 +279,16 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
                 break
 
             if not user_input:
+                continue
+            
+            # Если только '/', показываем подсказки команд
+            if user_input == "/":
+                console.print("[cyan]Доступные команды:[/]")
+                for i, cmd in enumerate(all_commands, 1):
+                    console.print(f"  /{cmd}", end="  ")
+                    if i % 4 == 0:
+                        console.print()
+                console.print()
                 continue
 
             # Slash-команды
@@ -296,22 +320,45 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
                     else:
                         console.print(f"[yellow]Текущий режим: [bold]{current_mode}[/bold][/]")
 
-                # ── Модель ───────────────────────────────────────────────
+                # ── Модель ───────────────────────────────────────────
                 elif cmd == "model":
                     if arg:
-                        if agent.set_model(arg):
+                        if arg in available_models:
                             current_model = arg
-                            m = get_model(arg)
-                            console.print(f"[green]✅ Модель: {m.name if m else arg}[/]")
+                            model_name = available_models[arg]["name"]
+                            console.print(f"[green]✅ Модель: {model_name}[/]")
                         else:
                             console.print(f"[red]Модель не найдена: {arg}[/]")
                     else:
-                        console.print(f"[yellow]Текущая модель: [bold]{current_model or 'дефолтная'}[/bold][/]")
+                        # Интерактивный выбор модели
+                        console.print("[cyan]Выбери модель:[/]")
+                        for i, (mid, minfo) in enumerate(available_models.items(), 1):
+                            is_current = "✓" if mid == current_model else " "
+                            console.print(f"  [{is_current}] {i}. {minfo['name']}")
+                        
+                        try:
+                            choice = console.input("[yellow]Номер (1-2):[/] ").strip()
+                            model_list = list(available_models.items())
+                            if choice == "1":
+                                current_model = model_list[0][0]
+                                model_name = model_list[0][1]["name"]
+                                console.print(f"[green]✅ Выбрана: {model_name}[/]")
+                            elif choice == "2":
+                                current_model = model_list[1][0]
+                                model_name = model_list[1][1]["name"]
+                                console.print(f"[green]✅ Выбрана: {model_name}[/]")
+                            else:
+                                console.print("[red]Неверный выбор[/]")
+                        except (KeyboardInterrupt, EOFError):
+                            console.print("[dim]Отменено[/]")
 
                 # ── Список моделей ───────────────────────────────────────
                 elif cmd == "models":
-                    target_mode = arg.strip() if arg else current_mode
-                    _print_models_table(target_mode)
+                    console.print("[cyan]Доступные модели:[/]")
+                    for mid, minfo in available_models.items():
+                        is_current = "✓" if mid == current_model else " "
+                        console.print(f"  [{is_current}] {minfo['name']} ({minfo['provider']})")
+                    console.print(f"\n[dim]Используй: /model для смены[/]")
 
                 # ── Стриминг ─────────────────────────────────────────────
                 elif cmd == "stream":
