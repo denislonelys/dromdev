@@ -921,18 +921,19 @@ def auth_login(token, server):
 
     if not token:
         console.print(Panel(
-            f"[bold cyan]◈ IIStudio — Вход[/]\n\n"
-            f"1. Зарегистрируйся или войди на:\n"
-            f"   [cyan]{server}/login[/]\n\n"
-            f"2. Скопируй API токен (sk-iis-...)\n\n"
-            f"3. Запусти:\n"
-            f"   [green]iis auth login --token sk-iis-...[/]",
+            f"[bold cyan]◈ IIStudio — Интерактивный вход[/]\n\n"
+            f"Введи свои учётные данные для входа",
             border_style="cyan",
         ))
-        # Интерактивный ввод
-        token = console.input("[cyan]Введи API токен (sk-iis-...): [/]").strip()
+        # Интерактивный ввод Email и API токена
+        email = console.input("[cyan]Введите Email: [/]").strip()
+        if not email:
+            console.print("[red]Email не введён[/]")
+            return
+        
+        token = console.input("[cyan]Введите ваш Api ключ: [/]").strip()
         if not token:
-            console.print("[red]Токен не введён[/]")
+            console.print("[red]API ключ не введён[/]")
             return
 
     # Проверяем токен на сервере
@@ -1516,32 +1517,30 @@ def dromdev_auth_login_cmd(server):
         border_style="cyan",
     ))
 
-    email = console.input("[cyan]Email: [/]").strip()
+    email = console.input("[cyan]Введите Email: [/]").strip()
     if not email:
         console.print("[red]Email не введён[/]"); return
 
-    password = console.input("[cyan]Пароль: [/]", password=True).strip()
+    api_key = console.input("[cyan]Введите ваш Api ключ: [/]").strip()
 
-    if password:
+    if api_key:
         try:
-            r = httpx.post(f"{server}/api/auth/login",
-                json={"email": email, "password": password}, timeout=15)
-            d = r.json()
-            if d.get("success") and d.get("api_token"):
-                token = d["api_token"]
-                user = d.get("user", {})
-                _save_iis_config(token, server, email, user.get("username",""))
+            r = httpx.get(f"{server}/api/user/me",
+                headers={"Authorization": f"Bearer {api_key}"}, timeout=15)
+            if r.status_code == 200:
+                user = r.json()
+                _save_iis_config(api_key, server, user.get("email", email), user.get("username",""))
                 console.print(Panel(
-                    f"[bold green]Вход выполнен![/]\n\n"
-                    f"Email: [cyan]{email}[/]\n"
-                    f"Токен: [dim]{token[:20]}...[/]\n"
+                    f"[bold green]✅ Вход выполнен![/]\n\n"
+                    f"Email: [cyan]{user.get('email', email)}[/]\n"
+                    f"План: [yellow]{user.get('plan','free').upper()}[/]\n"
                     f"Баланс: [green]${user.get('balance_usd',0):.4f}[/]\n"
                     f"Токенов: [cyan]{user.get('free_tokens',0):,}[/]\n\n"
                     f"[dim]Запусти агента: iis dromdev run[/]",
                     border_style="green",
                 )); return
             else:
-                console.print(f"[red]Ошибка: {d.get('detail','Неверные данные')}[/]")
+                console.print(f"[red]❌ Ошибка авторизации (status={r.status_code})[/]")
         except Exception as e:
             console.print(f"[yellow]Ошибка: {e}[/]")
 
