@@ -38,10 +38,10 @@ PLANS = {
     "free": {
         "name":        "Free",
         "price_usd":   0,
-        "free_tokens": 50000,
+        "free_tokens": 500000,
         "rate_limit":  "10 req/min",
         "features":    [
-            "50 000 токенов при регистрации (~25 больших запросов)",
+            "500 000 токенов + $2000 при регистрации",
             "Claude Sonnet 4.6 и Claude Opus 4.6",
             "Files API: PDF, изображения",
             "API доступ (sk-iis-...)",
@@ -98,15 +98,15 @@ async def get_pricing() -> Dict:
             "output_per_1m_usd": p["output"],
             "is_free":           p["free"],
             "description":       p.get("description", ""),
-            "note":              f"Первые 50 000 токенов бесплатно при регистрации",
+            "note":              f"500 000 токенов + $2000 при регистрации",
         }
         by_mode["text"].append(entry)
         by_mode["coding"].append(entry)
 
     return {
         "currency":        "USD",
-        "note":            "Цены за 1 миллион токенов. 50 000 токенов бесплатно при регистрации.",
-        "free_on_register":"50 000 токенов (~25 больших запросов)",
+        "note":            "Цены за 1 миллион токенов. 500 000 токенов + $2000 бесплатно при регистрации.",
+        "free_on_register":"500 000 токенов + $2000 (~250 больших запросов)",
         "models":          by_mode,
         "total_models":    len(PRICING),
     }
