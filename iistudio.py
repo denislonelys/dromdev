@@ -233,47 +233,54 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
     
     # AUTO-UPDATE: Проверяем и скачиваем обновления
     try:
-        console.print("[dim]⟳ Проверяю обновления...[/]", end=" ")
-        result = subprocess.run(
+        console.print("[dim]⟳ Проверяю обновления...[/]", end=" ", flush=True)
+        
+        # Проверяем есть ли обновления
+        subprocess.run(
             ["git", "-C", str(wd), "fetch", "--quiet"],
             capture_output=True,
             timeout=10
         )
-        # Проверяем есть ли новые коммиты
-        status = subprocess.run(
-            ["git", "-C", str(wd), "status", "--porcelain"],
+        
+        behind = subprocess.run(
+            ["git", "-C", str(wd), "rev-list", "--count", "HEAD..origin/main"],
             capture_output=True,
             text=True,
             timeout=5
         )
-        if status.stdout.strip() == "":  # Рабочая директория чистая
-            # Проверяем отстаёт ли от origin
-            behind = subprocess.run(
-                ["git", "-C", str(wd), "rev-list", "--count", "HEAD..origin/main"],
+        
+        behind_count = int(behind.stdout.strip() or "0")
+        
+        if behind_count > 0:
+            console.print("[yellow]Устанавливаю обновления...[/]")
+            
+            # Сбрасываем локальные изменения
+            subprocess.run(
+                ["git", "-C", str(wd), "reset", "--hard", "HEAD"],
                 capture_output=True,
-                text=True,
-                timeout=5
+                timeout=10
             )
-            if behind.stdout.strip() and int(behind.stdout.strip()) > 0:
-                console.print("[yellow]Скачиваю обновления...[/]")
-                subprocess.run(
-                    ["git", "-C", str(wd), "pull", "--quiet"],
-                    capture_output=True,
-                    timeout=30
-                )
-                # Переустановить зависимости
-                subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "-q", "-r", str(wd / "requirements.txt")],
-                    capture_output=True,
-                    timeout=60
-                )
-                console.print("[green]✅ Обновления установлены![/]")
-            else:
-                console.print("[green]✅ Уже последняя версия[/]")
+            
+            # Скачиваем обновления
+            subprocess.run(
+                ["git", "-C", str(wd), "pull", "--quiet", "origin", "main"],
+                capture_output=True,
+                timeout=30
+            )
+            
+            # Переустановить зависимости
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-q", "-r", str(wd / "requirements.txt")],
+                capture_output=True,
+                timeout=60
+            )
+            
+            console.print(f"[green]✅ Обновлено на {behind_count} коммит(ов)![/]")
         else:
-            console.print("[yellow]⚠️ Локальные изменения, пропускаю обновление[/]")
+            console.print("[green]✅ Уже последняя версия[/]")
+            
     except Exception as e:
-        console.print(f"[dim]⚠️ Ошибка обновления (продолжаю): {type(e).__name__}[/]")
+        console.print(f"[dim]⚠️ Ошибка обновления: {type(e).__name__}[/]")
     
     agent = IIStudioAgent(settings, workdir=wd)
     await agent.start()
