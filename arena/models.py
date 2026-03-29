@@ -29,8 +29,8 @@ TEXT_MODELS: List[AIModel] = [
     AIModel("o1",                "o1",                     "OpenAI",    "text", 200, "Глубокое рассуждение",      "o1"),
     AIModel("o1-mini",           "o1-mini",                "OpenAI",    "text", 128, "Быстрые рассуждения",       "o1-mini"),
     AIModel("o3-mini",           "o3-mini",                "OpenAI",    "text", 200, "Кодирование, математика",   "o3-mini"),
-    AIModel("claude-3-5-sonnet", "Claude 3.5 Sonnet",      "Anthropic", "text", 200, "Лучший баланс",             "claude-3-5-sonnet-20241022"),
-    AIModel("claude-3-5-haiku",  "Claude 3.5 Haiku",       "Anthropic", "text", 200, "Скорость",                  "claude-3-5-haiku-20241022"),
+    AIModel("claude-opus-4-6",   "Claude Opus 4.6",        "Anthropic", "text", 200, "Максимальная мощность",     "claude-opus-4-6"),
+    AIModel("claude-sonnet-4-6", "Claude Sonnet 4.6",      "Anthropic", "text", 200, "Скорость + качество",      "claude-sonnet-4-6"),
     AIModel("claude-3-opus",     "Claude 3 Opus",          "Anthropic", "text", 200, "Сложные задачи",            "claude-3-opus-20240229"),
     AIModel("gemini-2-flash",    "Gemini 2.0 Flash",       "Google",    "text", 1000,"Мультимодальность",         "gemini-2.0-flash"),
     AIModel("gemini-2-pro",      "Gemini 2.0 Pro",         "Google",    "text", 2000,"Большой контекст",          "gemini-2.0-pro"),
@@ -75,7 +75,7 @@ VIDEO_MODELS: List[AIModel] = [
 # ── Coding модели ─────────────────────────────────────────────────────────────
 
 CODING_MODELS: List[AIModel] = [
-    AIModel("claude-3-5-sonnet", "Claude 3.5 Sonnet",      "Anthropic", "coding", 200,"Лучший для кода",          "claude-3-5-sonnet-20241022", True),
+    AIModel("claude-opus-4-6",   "Claude Opus 4.6",        "Anthropic", "coding", 200,"Лучший для кода",          "claude-opus-4-6", True),
     AIModel("o3-mini",           "o3-mini",                "OpenAI",    "coding", 200,"Рассуждения + код",        "o3-mini"),
     AIModel("deepseek-r1",       "DeepSeek R1",            "DeepSeek",  "coding", 64, "Математика + код",         "deepseek-r1"),
     AIModel("gpt-4o",            "GPT-4o",                 "OpenAI",    "coding", 128,"Универсальный",            "gpt-4o"),
