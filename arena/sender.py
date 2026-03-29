@@ -1,5 +1,5 @@
 # ============================================================================
-# IIStudio — Отправитель запросов на arena.ai
+# IIStudio — Отправитель запросов на AI системе
 # ============================================================================
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from utils.logger import logger
 
 
 class ArenaSender:
-    """Высокоуровневый интерфейс для отправки запросов на arena.ai."""
+    """Высокоуровневый интерфейс для отправки запросов на AI системе."""
 
     def __init__(self, parser: ArenaParser, email: str, password: str) -> None:
         self.parser = parser
@@ -52,16 +52,16 @@ class ArenaSender:
             # Убедиться что залогинены (только если ещё нет)
             if not self.parser._logged_in:
                 if not await self.parser.ensure_logged_in(self.email, self.password):
-                    result["error"] = "Не удалось авторизоваться на arena.ai"
+                    result["error"] = "Не удалось авторизоваться на AI системе"
                     return result
 
-            # Выбрать модель (пропускаем если не удаётся — дефолтная модель arena.ai)
+            # Выбрать модель (пропускаем если не удаётся — дефолтная модель AI системе)
             model = _resolve_model(model_id, mode)
             if model:
                 try:
                     await self.parser.select_model(model)
                 except Exception:
-                    pass  # не критично — arena.ai использует свою дефолтную
+                    pass  # не критично — AI системе использует свою дефолтную
                 result["model"] = model.id
 
             # Отправить сообщение с retry + авто-смена аккаунта при rate limit
@@ -94,7 +94,7 @@ class ArenaSender:
                         else:
                             await asyncio.sleep(30)
                     else:
-                        result["error"] = "Rate limit — дневной лимит arena.ai исчерпан. Автоматически регистрируем новый аккаунт..."
+                        result["error"] = "Rate limit — дневной лимит AI системе исчерпан. Автоматически регистрируем новый аккаунт..."
 
         except Exception as e:
             logger.error("Ошибка при отправке запроса: {}", e)

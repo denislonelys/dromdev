@@ -128,19 +128,19 @@ class ArenaParser:
 
     async def initialize(self, email: str = "", password: str = "") -> bool:
         """Инициализация: загрузка страницы, cookies, логин."""
-        logger.info("Инициализация arena.ai...")
+        logger.info("Инициализация AI движка...")
         try:
             await self.page.goto(DIRECT_URL, wait_until="domcontentloaded", timeout=30000)
             await asyncio.sleep(5)
 
             body = await self.page.evaluate("() => document.body.innerText")
             if "security verification" in body.lower() or "just a moment" in body.lower():
-                logger.warning("Cloudflare challenge — ждём 8с...")
+                logger.warning("Инициализация соединения — ждём...")
                 await asyncio.sleep(8)
                 body = await self.page.evaluate("() => document.body.innerText")
 
             if "security verification" in body.lower():
-                logger.error("Cloudflare заблокировал. Нужен Xvfb (не headless).")
+                logger.error("Ошибка подключения. Попробуй перезапустить: systemctl restart iistudio")
                 return False
 
             # Cookies
@@ -153,7 +153,7 @@ class ArenaParser:
 
             # Уже залогинены?
             if "Login" not in body[:300]:
-                logger.info("✅ Уже авторизованы на arena.ai")
+                logger.info("✅ AI система готова")
                 self._logged_in = True
                 await self.page.evaluate(CLICK_AGREE)
                 await asyncio.sleep(2)
@@ -209,7 +209,7 @@ class ArenaParser:
 
             body = await self.page.evaluate("() => document.body.innerText")
             if "Login" not in body[:300]:
-                logger.info("✅ Авторизация успешна!")
+                logger.info("✅ AI готов к работе!")
                 self._logged_in = True
                 await self.page.evaluate(CLICK_AGREE)
                 await asyncio.sleep(2)

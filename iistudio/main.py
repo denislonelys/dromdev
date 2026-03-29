@@ -93,7 +93,7 @@ async def _run_chat(
 @click.pass_context
 def cli(ctx, debug):
     """
-    ◈ IIStudio — AI Dev Tool (arena.ai orchestrator)
+    ◈ IIStudio — AI Dev Tool
 
     \b
     Примеры:

@@ -111,7 +111,7 @@ class IIStudioAgent:
             password=self.settings.arena_password,
         )
         if not init_ok:
-            logger.warning("Инициализация arena.ai не завершена — проверь email/password в .env")
+            logger.warning("Инициализация AI не завершена. Запусти: iis auth login")
 
         self._started = True
         logger.info("✅ IIStudio готов к работе")
