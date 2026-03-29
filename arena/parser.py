@@ -73,12 +73,17 @@ CLICK_AGREE = """() => {
 
 
 def parse_stream(raw: str) -> str:
-    """Парсит Next.js AI SDK streaming: a0:"text" / 0:"text"."""
+    """Парсит Next.js AI SDK streaming.
+    Формат: a0:"text" — текст ответа
+             a2:[...] — метаданные (игнорируем)
+             ad:{...} — конец стрима (игнорируем)
+    """
     text = ""
     for line in raw.split("\n"):
         line = line.strip()
         if not line:
             continue
+        # Только строки с текстом: a0:"..." или 0:"..."
         m = re.match(r'^[a-f0-9]*0:"(.*)"$', line)
         if m:
             try:
@@ -86,6 +91,28 @@ def parse_stream(raw: str) -> str:
             except Exception:
                 text += m.group(1)
     return text
+
+
+def is_stream_done(raw: str) -> bool:
+    """Проверить что стрим завершён (есть finishReason)."""
+    return '"finishReason"' in raw or '"finish_reason"' in raw
+
+
+def extract_model_from_stream(raw: str) -> str:
+    """Извлечь провайдера модели из метаданных стрима."""
+    m = re.search(r'"organization"\s*:\s*"([^"]+)"', raw)
+    if m:
+        org_map = {
+            "anthropic": "Claude",
+            "openai": "GPT",
+            "google": "Gemini",
+            "meta": "Llama",
+            "deepseek": "DeepSeek",
+            "mistral": "Mistral",
+            "xai": "Grok",
+        }
+        return org_map.get(m.group(1).lower(), m.group(1).capitalize())
+    return "AI"
 
 
 def fill_textarea_js(text: str) -> str:
@@ -286,49 +313,59 @@ class ArenaParser:
             return False
 
     async def wait_for_response(self, timeout: int = 90) -> Optional[str]:
-        """Ждать ответа через fetch interceptor."""
+        """Ждать ответа через fetch interceptor.
+        
+        Оптимизация: не ждём done=True, читаем как только есть finishReason.
+        Это убирает задержку от heartbeat пакетов.
+        """
         logger.debug("Ожидание ответа...")
         start = time.time()
 
         while time.time() - start < timeout:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)  # Проверяем чаще — быстрее реагируем
             await self.page.evaluate(REMOVE_OVERLAYS)
 
             state = await self.page.evaluate("""() => ({
                 done: window.__iis_d,
                 status: window.__iis_s,
-                len: (window.__iis_r || '').length
+                len: (window.__iis_r || '').length,
+                raw: window.__iis_r || ''
             })""")
 
-            if state.get("done") and state.get("len", 0) > 0:
-                raw = await self.page.evaluate("() => window.__iis_r || ''")
-                status = state.get("status")
+            status = state.get("status", 0)
+            raw = state.get("raw", "")
+            length = state.get("len", 0)
 
-                if status == 200:
-                    text = parse_stream(raw)
-                    if text:
-                        logger.debug("✅ Ответ получен ({} символов)", len(text))
+            # Как только статус известен и ответ не 200
+            if status == 429:
+                logger.warning("Rate limit (429) — ждём 30с...")
+                await asyncio.sleep(30)
+                return None
+            elif status == 403:
+                logger.error("Ошибка соединения (403)")
+                return None
+            elif status not in (0, 200) and status > 0:
+                logger.error("Ошибка status={}", status)
+                return None
+
+            # Читаем текст СРАЗУ как появляется — не ждём done
+            if status == 200 and length > 0:
+                text = parse_stream(raw)
+                if text:
+                    # Проверяем завершён ли стрим (finishReason) или done=True
+                    if is_stream_done(raw) or state.get("done"):
+                        model = extract_model_from_stream(raw)
+                        logger.debug("✅ Ответ от {} ({} символов)", model, len(text))
                         return text
-                    # Пустой парсинг - возвращаем raw
-                    logger.warning("Парсинг пустой, raw: {}", raw[:100])
-                    return raw
+                    # Стрим ещё идёт — продолжаем накапливать
+                    # Но если прошло достаточно времени и есть текст — возвращаем
+                    elapsed = time.time() - start
+                    if elapsed > 3 and state.get("done"):
+                        return text
 
-                elif status == 429:
-                    logger.warning(
-                        "Rate limit (429)! Ждём 30с и пробуем снова..."
-                    )
-                    await asyncio.sleep(30)
-                    # Пробуем отправить снова
-                    return None
-
-                elif status == 403:
-                    logger.error("reCAPTCHA failed (403). Нужен Xvfb (не headless).")
-                    return None
-
-                else:
-                    raw_preview = await self.page.evaluate("() => window.__iis_r || ''")
-                    logger.error("Ошибка status={}: {}", status, raw_preview[:100])
-                    return None
+            # Fallback: если done=True но нет text (пустой parse)
+            if state.get("done") and length > 0 and status == 200:
+                return raw  # Возвращаем raw если parse пустой
 
         logger.warning("Timeout {}с", timeout)
         return None
