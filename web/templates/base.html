@@ -25,8 +25,8 @@
       <a href="/docs" class="nav-link" target="_blank">API</a>
     </div>
     <div class="navbar-status">
-      <span class="status-dot {% if status.browser_running %}online{% else %}offline{% endif %}"></span>
-      <span class="status-text">{{ status.mode | upper }}</span>
+      <span class="status-dot {% if browser_running %}online{% else %}offline{% endif %}"></span>
+      <span class="status-text">{{ mode | upper }}</span>
     </div>
   </nav>
 
