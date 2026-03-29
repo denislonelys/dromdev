@@ -54,8 +54,23 @@ def create_app() -> FastAPI:
         allow_origins=["*"],  # Открыто для веб-интерфейса
         allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"],
+        allow_headers=["*", "authorization", "content-type"],
     )
+    
+    # ── Exception handler для корректной обработки ошибок ─────────────────────
+    @app.exception_handler(Exception)
+    async def custom_exception_handler(request: Request, exc: Exception):
+        """Обработка исключений с корректными заголовками."""
+        logger.error("Exception: {}", str(exc))
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(exc), "detail": "Internal Server Error"},
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*",
+            }
+        )
 
     # ── Middleware: логирование запросов ──────────────────────────────────────
     @app.middleware("http")

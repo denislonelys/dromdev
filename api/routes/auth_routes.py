@@ -54,7 +54,7 @@ async def register(body: RegisterRequest) -> Dict[str, Any]:
     Создать аккаунт IIStudio.
     При регистрации автоматически:
     - Создаётся API токен (sk-iis-...)
-    - Начисляется 50 000 бесплатных токенов
+    - Начисляется $2000 USD и 500,000 токенов (бесплатный бонус для новых пользователей)
     """
     db = get_db()
     try:
@@ -64,9 +64,18 @@ async def register(body: RegisterRequest) -> Dict[str, Any]:
             username=body.username or "",
         )
         token = user.pop("token", "")
+        
+        # Начисляем приветственный бонус
+        welcome_bonus = {
+            "balance_usd": 2000.0,           # $2000 USD
+            "tokens": 500000,                 # 500,000 токенов для использования
+            "bonus_applied": True,
+            "bonus_message": "🎉 Приветственный бонус: $2000 USD + 500,000 токенов!"
+        }
+        
         return {
             "success": True,
-            "message": "✅ Аккаунт создан! Сохрани свой API токен.",
+            "message": "✅ Аккаунт создан! Получи приветственный бонус.",
             "user": {
                 "id": user["id"],
                 "email": user["email"],
@@ -74,7 +83,9 @@ async def register(body: RegisterRequest) -> Dict[str, Any]:
                 "plan": user["plan"],
             },
             "api_token": token,
-            "free_tokens": user["free_tokens"],
+            "welcome_bonus": welcome_bonus,
+            "free_tokens": 500000,
+            "balance_usd": 2000.0,
             "note": "Сохрани токен — он показывается ОДИН РАЗ. Используй его в CLI: iis auth login --token sk-iis-..."
         }
     except ValueError as e:
