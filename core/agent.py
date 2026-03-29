@@ -48,16 +48,64 @@ MODELS = {
 }
 DEFAULT_MODEL = "claude-opus-4-6"  # По умолчанию Opus
 
-SYSTEM_PROMPT = "Ты — IIStudio AI, мощный ИИ-ассистент для разработчиков. Помогаешь с кодом, планированием, анализом. Отвечай чётко. При коде — блоки кода. Язык ответа = язык вопроса."
+from core.tools import AgentTools, SYSTEM_PROMPT_WITH_TOOLS
+
+SYSTEM_PROMPT = SYSTEM_PROMPT_WITH_TOOLS
+
+
+def _process_tool_calls(response: str, tools: "AgentTools") -> tuple[str, list[str]]:
+    """Обрабатывает tool-вызовы в ответе агента и выполняет их."""
+    import re as _re
+    actions = []
+    
+    # write_file
+    for m in _re.finditer(r'<tool:write_file path="([^"]+)">([\s\S]*?)</tool:write_file>', response):
+        path, content = m.group(1), m.group(2).strip()
+        result = tools.write_file(path, content)
+        actions.append(f"  Записан файл: {path}" if result.success else f"  Ошибка записи {path}: {result.error}")
+        response = response.replace(m.group(0), f"```\n# Записан файл: {path}\n```")
+    
+    # read_file
+    for m in _re.finditer(r'<tool:read_file path="([^"]+)"\s*/>', response):
+        path = m.group(1)
+        result = tools.read_file(path)
+        if result.success:
+            actions.append(f"  Прочитан файл: {path}")
+            response = response.replace(m.group(0), f"```\n{result.output[:2000]}\n```")
+        else:
+            response = response.replace(m.group(0), f"[Ошибка: {result.error}]")
+    
+    # bash
+    for m in _re.finditer(r'<tool:bash cmd="([^"]+)"\s*/>', response):
+        cmd = m.group(1)
+        result = tools.bash(cmd)
+        actions.append(f"  $ {cmd}")
+        if result.output:
+            actions.append(f"    {result.output[:200]}")
+        response = response.replace(m.group(0), f"```bash\n$ {cmd}\n{result.output[:500]}\n```")
+    
+    # list_files
+    for m in _re.finditer(r'<tool:list_files path="([^"]+)"\s*/>', response):
+        path = m.group(1)
+        result = tools.list_files(path)
+        response = response.replace(m.group(0), f"```\n{result.output}\n```")
+    
+    # search
+    for m in _re.finditer(r'<tool:search query="([^"]+)"\s*/>', response):
+        query = m.group(1)
+        result = tools.search_files(query)
+        response = response.replace(m.group(0), f"```\n{result.output[:1000]}\n```")
+    
+    return response, actions
 
 
 class IIStudioAgent:
     """Главный агент IIStudio — KiroAI через OmniRoute."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, workdir: Optional[Path] = None) -> None:
         self.settings = settings
         self.session = Session(mode=settings.default_mode)
-        self.context = ProjectContext(Path("."))
+        self.context = ProjectContext(workdir or Path("."))
         self._cache = CacheManager(
             redis_url=settings.redis_url,
             default_ttl=settings.cache_ttl,
@@ -65,6 +113,7 @@ class IIStudioAgent:
         )
         self._current_model = DEFAULT_MODEL
         self._started = False
+        self.tools = AgentTools(workdir or Path("."))
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -206,6 +255,8 @@ class IIStudioAgent:
                 cost = 0.0
 
                 if text:
+                    # Обрабатываем tool-вызовы (write_file, bash, etc.)
+                    text, actions = _process_tool_calls(text, self.tools)
                     result.update({
                         "success":       True,
                         "response":      text,
@@ -214,6 +265,7 @@ class IIStudioAgent:
                         "input_tokens":  input_tokens,
                         "output_tokens": output_tokens,
                         "cost_usd":      cost,
+                        "actions":       actions,  # Список выполненных действий
                     })
 
                     # Billing (бесплатные токены только считаем)

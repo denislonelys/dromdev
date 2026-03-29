@@ -202,24 +202,22 @@ REPL_HELP = """
   [cyan]/exit[/] или [cyan]Ctrl+C[/]        — выход
 """
 
-async def _interactive_mode(mode: str, model_id: Optional[str]) -> None:
-    from core.agent import IIStudioAgent
-    from arena.models import get_model
+async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optional[str] = None) -> None:
+    from pathlib import Path
+    from core.agent import IIStudioAgent, MODELS
 
-    agent = IIStudioAgent(settings)
+    wd = Path(workdir).resolve() if workdir else Path(".").resolve()
+    agent = IIStudioAgent(settings, workdir=wd)
     await agent.start()
 
-    try:
-        status = await agent.get_status()
-        proxy = status.get("proxy", {})
-        proxy_str = proxy.get("current") or "нет"
-        lat = proxy.get("latency_ms")
-        lat_str = f" ({lat:.0f}мс)" if lat else ""
+    current_model = model_id or list(MODELS.keys())[0]
+    model_name = MODELS.get(current_model, {}).get("name", current_model)
 
+    try:
         console.print(Panel(
-            f"[bold cyan]◈ IIStudio v{settings.iistudio_version}[/] — AI Dev Tool\n"
-            f"Режим: [yellow]{mode}[/] | Прокси: [green]{proxy_str}{lat_str}[/]\n\n"
-            f"[dim]Напиши запрос или /help для списка команд[/]",
+            f"[bold cyan]◈ IIStudio v{settings.iistudio_version}[/]\n"
+            f"Модель: [magenta]{model_name}[/] | Проект: [yellow]{wd.name}[/]\n\n"
+            f"[dim]Напиши запрос или /help для команд. Агент умеет читать/писать файлы и запускать команды.[/]",
             border_style="cyan",
         ))
 
@@ -460,20 +458,25 @@ async def _interactive_mode(mode: str, model_id: Optional[str]) -> None:
                 continue
 
             # Обычное сообщение
-            with console.status("[cyan]Думаю...[/]"):
+            with console.status(f"[cyan]◈ {model_name} думает...[/]"):
                 result = await agent.chat(
                     user_input, mode=current_mode, model_id=current_model
                 )
 
             if result.get("success"):
-                m_name = result.get("model", "AI")
-                latency = result.get("latency_ms")
+                # Показываем выполненные действия (write_file, bash, etc.)
+                actions = result.get("actions", [])
+                if actions:
+                    console.print("[dim]Выполнено:[/]")
+                    for action in actions:
+                        console.print(f"[green]{action}[/]")
+
                 cached = result.get("cached", False)
-                lat_s = f" {latency:.0f}мс" if latency else ""
-                cache_s = " [кэш]" if cached else ""
+                cache_s = " [dim][кэш][/]" if cached else ""
+                m_name = MODELS.get(current_model, {}).get("name", current_model)
                 console.print(Panel(
                     Markdown(result["response"]),
-                    title=f"[cyan]{m_name}[/][dim]{lat_s}{cache_s}[/]",
+                    title=f"[cyan]{m_name}[/]{cache_s}",
                     border_style="green",
                 ))
             else:
