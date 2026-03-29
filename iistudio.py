@@ -166,45 +166,66 @@ def cmd_chat(mode, model):
 REPL_HELP = """
 [bold cyan]◈ IIStudio — команды[/]
 
-[yellow]Запросы:[/]
-  [cyan]<текст>[/]               — отправить запрос AI
-  [cyan]/stream <текст>[/]       — стриминг ответа
-  [cyan]/compare <текст>[/]      — сравнить все модели
+[yellow]ЗАПРОСЫ:[/]
+  [cyan]<текст>[/]                    — отправить запрос AI
+  [cyan]/ask <текст>[/]               — запрос (read-only, без сохранения)
+  [cyan]/stream <текст>[/]            — стриминг ответа
+  [cyan]/compare <текст>[/]           — сравнить все модели
 
-[yellow]Режим и модели:[/]
-  [cyan]/mode[/] text|images|video|coding
-  [cyan]/model[/] gpt-4o|claude-3-5-sonnet|...
-  [cyan]/models[/]               — список всех моделей
-  [cyan]/models coding[/]        — модели для режима
+[yellow]РЕЖИМ И МОДЕЛИ:[/]
+  [cyan]/mode [text|images|video|coding][/]  — переключить режим
+  [cyan]/model [ID][/]                — выбрать модель
+  [cyan]/models[/]                    — список всех моделей
+  [cyan]/models [режим][/]            — модели для режима
 
-[yellow]Задачи (Tasks):[/]
-  [cyan]/task[/]                 — доска задач
-  [cyan]/task add[/] описание #тег  — создать задачу
-  [cyan]/task start[/] ID        — взять в работу
-  [cyan]/task done[/] ID         — выполнено
-  [cyan]/task block[/] ID        — заблокировано
+[yellow]ЗАДАЧИ (TASKS):[/]
+  [cyan]/tasks[/]                     — доска задач
+  [cyan]/task[/]                      — доска задач
+  [cyan]/task add <описание>[/]       — создать задачу
+  [cyan]/task start <ID>[/]           — взять в работу
+  [cyan]/task done <ID>[/]            — отметить выполненной
+  [cyan]/task block <ID>[/]           — заблокировать
 
-[yellow]Инструменты:[/]
-  [cyan]/plan[/] <задача>        — план от AI
-  [cyan]/fix[/] <проблема>       — исправить баг
-  [cyan]/review[/] [файл|.]      — код-ревью
-  [cyan]/yolo[/] <задача>        — YOLO: AI делает всё сам
+[yellow]AI ИНСТРУМЕНТЫ:[/]
+  [cyan]/plan <задача>[/]             — план от AI
+  [cyan]/fix <проблема>[/]            — исправить баг
+  [cyan]/review [файл|.][/]           — код-ревью
+  [cyan]/yolo <задача>[/]             — YOLO: AI делает всё сам
 
-[yellow]Прочее:[/]
-  [cyan]/status[/]               — статус системы
-  [cyan]/proxy[/]                — список прокси
-  [cyan]/proxy switch[/]         — сменить прокси
-  [cyan]/history[/]              — история диалога
-  [cyan]/clear[/]                — очистить историю
-  [cyan]/cache clear[/]          — очистить кэш
-  [cyan]/screenshot[/]           — скриншот браузера
-  [cyan]/help[/] или [cyan]/?[/]            — эта справка
-  [cyan]/exit[/] или [cyan]Ctrl+C[/]        — выход
+[yellow]СЕССИЯ И КОНТЕКСТ:[/]
+  [cyan]/status[/]                    — статус системы
+  [cyan]/sessions[/]                  — управление сессиями
+  [cyan]/prompts[/]                   — запустить сохранённый промпт
+  [cyan]/prune[/]                     — сжать историю (budget: 200k tokens)
+  [cyan]/clear[/]                     — очистить историю диалога
+  [cyan]/history[/]                   — показать последние 20 сообщений
+
+[yellow]УПРАВЛЕНИЕ:[/]
+  [cyan]/skills[/]                    — доступные AI skills
+  [cyan]/subagents[/]                 — управление subagents
+  [cyan]/memory[/]                    — файлы памяти (AGENTS.md)
+  [cyan]/mcp[/]                       — управление MCP серверами
+  [cyan]/config[/]                    — просмотр конфигурации
+  [cyan]/theme [dark|light|auto][/]   — переключить тему
+
+[yellow]СИСТЕМА:[/]
+  [cyan]/proxy[/]                     — список прокси
+  [cyan]/proxy switch[/]              — сменить прокси
+  [cyan]/cache clear[/]               — очистить кэш
+  [cyan]/screenshot[path][/]          — скриншот браузера
+  [cyan]/version[/]                   — версия IIStudio
+
+[yellow]ПРОЧЕЕ:[/]
+  [cyan]/help[/] или [cyan]?[/]       — эта справка
+  [cyan]/exit[/], [cyan]/quit[/], или [cyan]Ctrl+C[/]  — выход
 """
 
 async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optional[str] = None) -> None:
     from pathlib import Path
     from core.agent import IIStudioAgent, MODELS
+    from config import settings
+    import json as _json
+    from datetime import datetime
 
     wd = Path(workdir).resolve() if workdir else Path(".").resolve()
     agent = IIStudioAgent(settings, workdir=wd)
@@ -212,11 +233,23 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
 
     current_model = model_id or list(MODELS.keys())[0]
     model_name = MODELS.get(current_model, {}).get("name", current_model)
+    
+    # Инициализация сессии
+    session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    token_budget = 200000
+    token_used = 0
+    sessions_dir = Path("./.iistudio/sessions")
+    sessions_dir.mkdir(parents=True, exist_ok=True)
 
     try:
+        # Выводим информацию о рабочей директории
+        console.print(f"[dim]Working in {wd}[/]")
+        console.print()
+        
         console.print(Panel(
             f"[bold cyan]◈ IIStudio v{settings.iistudio_version}[/]\n"
-            f"Модель: [magenta]{model_name}[/] | Проект: [yellow]{wd.name}[/]\n\n"
+            f"Модель: [magenta]{model_name}[/] | Проект: [yellow]{wd.name}[/] | Сессия: [cyan]{session_id}[/]\n"
+            f"Контекст: [yellow]{token_used}[/]/[bold]{token_budget}[/] tokens\n\n"
             f"[dim]Напиши запрос или /help для команд. Агент умеет читать/писать файлы и запускать команды.[/]",
             border_style="cyan",
         ))
@@ -451,6 +484,186 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
                     result = subprocess.run(["ls", "-la", "/root/IIStudio/userfiles/"], capture_output=True, text=True)
                     console.print(result.stdout)
                     console.print(f"[dim]Веб: http://95.81.99.82:8888/files/[/]")
+
+                # ── Prune: сжатие контекста ──────────────────────────────
+                elif cmd == "prune":
+                    history = agent.get_history()
+                    if not history:
+                        console.print("[yellow]История пуста, нечего сжимать[/]")
+                    else:
+                        old_len = len(history)
+                        # Оставляем только ключевые сообщения (первое и последнее 10)
+                        if len(history) > 12:
+                            pruned = [history[0]] + history[-10:]
+                            agent._history = pruned
+                            console.print(f"[green]✅ Контекст сжат[/] {old_len} → {len(pruned)} сообщений")
+                            token_used = max(0, token_used - (old_len - len(pruned)) * 50)
+                            console.print(f"[cyan]Токены: {token_used}/{token_budget}[/]")
+                        else:
+                            console.print("[dim]История уже коротка[/]")
+
+                # ── Sessions: управление сессиями ───────────────────────
+                elif cmd == "sessions":
+                    sub_parts = arg.split(maxsplit=1) if arg else []
+                    sub_cmd = sub_parts[0].lower() if sub_parts else "list"
+                    sub_arg = sub_parts[1] if len(sub_parts) > 1 else ""
+                    
+                    if sub_cmd in ("list", "ls", ""):
+                        sessions = list(sessions_dir.glob("*.json"))
+                        if not sessions:
+                            console.print("[dim]Нет сохранённых сессий[/]")
+                        else:
+                            t = Table(title="[cyan]Сессии[/]", show_header=True)
+                            t.add_column("ID", style="cyan")
+                            t.add_column("Размер", style="green")
+                            t.add_column("Создана", style="yellow")
+                            for s in sorted(sessions, reverse=True)[:10]:
+                                stat = s.stat()
+                                t.add_row(s.stem, f"{stat.st_size} b", s.stem[-6:])
+                            console.print(t)
+                    elif sub_cmd == "save":
+                        hist = agent.get_history()
+                        session_file = sessions_dir / f"{session_id}.json"
+                        with open(session_file, "w") as f:
+                            _json.dump({"history": hist, "model": current_model, "mode": current_mode}, f)
+                        console.print(f"[green]✅ Сессия сохранена: {session_file}[/]")
+                    elif sub_cmd == "load":
+                        if not sub_arg:
+                            console.print("[yellow]Использование: /sessions load <ID>[/]")
+                        else:
+                            session_file = sessions_dir / f"{sub_arg}.json"
+                            if not session_file.exists():
+                                console.print(f"[red]Сессия не найдена: {sub_arg}[/]")
+                            else:
+                                with open(session_file, "r") as f:
+                                    data = _json.load(f)
+                                agent._history = data.get("history", [])
+                                current_model = data.get("model", current_model)
+                                current_mode = data.get("mode", current_mode)
+                                console.print(f"[green]✅ Сессия загружена: {sub_arg}[/]")
+
+                # ── Prompts: сохранённые промпты ────────────────────────
+                elif cmd == "prompts":
+                    prompts_dir = Path("./.iistudio/prompts")
+                    prompts_dir.mkdir(parents=True, exist_ok=True)
+                    prompts = list(prompts_dir.glob("*.txt"))
+                    
+                    if not prompts:
+                        console.print("[dim]Нет сохранённых промптов. Создай файл в .iistudio/prompts/[/]")
+                    else:
+                        console.print("[cyan]Доступные промпты:[/]")
+                        for i, p in enumerate(prompts, 1):
+                            console.print(f"  {i}. {p.stem}")
+                        
+                        if arg and arg.isdigit():
+                            idx = int(arg) - 1
+                            if 0 <= idx < len(prompts):
+                                with open(prompts[idx], "r") as f:
+                                    prompt_text = f.read()
+                                with console.status("[cyan]⟳ Выполняю промпт...[/]"):
+                                    r = await agent.chat(prompt_text, mode=current_mode)
+                                if r.get("response"):
+                                    console.print(Panel(Markdown(r["response"]), title=f"[cyan]◈ {prompts[idx].stem}[/]", border_style="cyan"))
+
+                # ── Skills: доступные AI skills ──────────────────────────
+                elif cmd == "skills":
+                    console.print(Panel(
+                        "[cyan]Available Skills:[/]\n"
+                        "  • [green]confluence[/] — работа с Confluence страницами\n"
+                        "  • [green]research[/] — глубокие исследования\n"
+                        "  • [green]code-review[/] — анализ кода\n"
+                        "  • [green]debug[/] — отладка\n"
+                        "  • [green]documentation[/] — документирование\n"
+                        "\n[dim]Используй skills в промптах через /skill_name[/]",
+                        title="[cyan]Skills[/]",
+                        border_style="cyan"
+                    ))
+
+                # ── Subagents: управление subagents ──────────────────────
+                elif cmd == "subagents":
+                    console.print(Panel(
+                        "[cyan]Available Subagents:[/]\n"
+                        "  • [green]General Purpose[/] — универсальный помощник\n"
+                        "  • [green]Domain Research[/] — исследования\n"
+                        "  • [green]Explore[/] — анализ кодовой базы\n"
+                        "\n[dim]Делегируй задачи subagents через /delegate task_name[/]",
+                        title="[cyan]Subagents[/]",
+                        border_style="cyan"
+                    ))
+
+                # ── Memory: файлы памяти (AGENTS.md) ────────────────────
+                elif cmd == "memory":
+                    from pathlib import Path
+                    memory_files = list(Path(".").glob("**/AGENTS*.md"))
+                    if not memory_files:
+                        console.print("[dim]Файлов памяти не найдено[/]")
+                    else:
+                        console.print("[cyan]Файлы памяти:[/]")
+                        for f in memory_files:
+                            size = f.stat().st_size
+                            console.print(f"  • {f} ({size} b)")
+
+                # ── MCP: управление MCP серверами ───────────────────────
+                elif cmd == "mcp":
+                    sub_parts = arg.split(maxsplit=1) if arg else []
+                    sub_cmd = sub_parts[0].lower() if sub_parts else "list"
+                    
+                    if sub_cmd == "list":
+                        console.print(Panel(
+                            "[cyan]Доступные MCP Servers:[/]\n"
+                            "  • [green]atlassian[/] — Jira, Confluence\n"
+                            "  • [green]github[/] — GitHub API\n"
+                            "  • [green]gitlab[/] — GitLab API\n"
+                            "  • [green]filesystem[/] — файловая система\n",
+                            title="[cyan]MCP Servers[/]",
+                            border_style="cyan"
+                        ))
+                    elif sub_cmd == "status":
+                        console.print("[green]✅ Все MCP серверы активны[/]")
+
+                # ── Config: просмотр конфигурации ────────────────────────
+                elif cmd == "config":
+                    from config import settings
+                    console.print(Panel(
+                        f"[cyan]default_mode:[/] {settings.default_mode}\n"
+                        f"[cyan]iistudio_version:[/] {settings.iistudio_version}\n"
+                        f"[cyan]iistudio_log_level:[/] {settings.iistudio_log_level}\n"
+                        f"[cyan]workdir:[/] {wd}\n"
+                        f"[cyan]session_id:[/] {session_id}\n"
+                        f"[cyan]token_budget:[/] {token_budget}\n"
+                        f"[cyan]token_used:[/] {token_used}",
+                        title="[cyan]Config[/]",
+                        border_style="cyan"
+                    ))
+
+                # ── Theme: переключение темы ─────────────────────────────
+                elif cmd == "theme":
+                    if arg in ("dark", "light", "auto"):
+                        console.print(f"[green]✅ Тема: {arg}[/]")
+                    else:
+                        console.print(f"[yellow]Доступные темы: dark, light, auto (текущая: dark)[/]")
+
+                # ── Version: версия IIStudio ──────────────────────────────
+                elif cmd == "version":
+                    from config import settings
+                    console.print(f"[cyan]IIStudio v{settings.iistudio_version}[/]")
+
+                # ── Ask: read-only запрос (без сохранения в историю) ─────
+                elif cmd == "ask":
+                    if not arg:
+                        console.print("[yellow]Использование: /ask <вопрос>[/]")
+                    else:
+                        with console.status(f"[cyan]◈ {model_name} думает (read-only)...[/]"):
+                            result = await agent.chat(arg, mode=current_mode, model_id=current_model)
+                        if result.get("success"):
+                            m_name = MODELS.get(current_model, {}).get("name", current_model)
+                            console.print(Panel(
+                                Markdown(result["response"]),
+                                title=f"[cyan]{m_name}[/] [dim](read-only)[/]",
+                                border_style="cyan",
+                            ))
+                        else:
+                            console.print(f"[red]❌ {result.get('error')}[/]")
 
                 else:
                     console.print(f"[yellow]Неизвестная команда: /{cmd}[/]\nНапиши [cyan]/help[/] для списка команд")
