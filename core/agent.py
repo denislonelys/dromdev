@@ -14,6 +14,7 @@ from arena.parser import ArenaParser
 from arena.receiver import ResponseProcessor
 from arena.sender import ArenaSender
 from cache.cache import CacheManager
+from core.account_pool import AccountPool
 from config import Settings
 from core.browser import BrowserManager
 from core.context import ProjectContext
@@ -86,13 +87,23 @@ class IIStudioAgent:
             )
         page = await self._browser.start()
 
+        # Пул аккаунтов (авто-смена при rate limit)
+        account_pool = AccountPool()
+        # Добавляем основной аккаунт из .env если его ещё нет
+        if self.settings.arena_email and not any(
+            a["email"] == self.settings.arena_email for a in account_pool._accounts
+        ):
+            account_pool.add_account(self.settings.arena_email, self.settings.arena_password)
+            account_pool._current_idx = len(account_pool._accounts) - 1
+
         # Парсер + отправитель
         parser = ArenaParser(page, base_url=self.settings.arena_base_url)
         self._sender = ArenaSender(
             parser=parser,
-            email=self.settings.arena_email,
-            password=self.settings.arena_password,
+            email=account_pool.current_email or self.settings.arena_email,
+            password=account_pool.current_password or self.settings.arena_password,
         )
+        self._sender._account_pool = account_pool  # type: ignore
 
         # Инициализация: загрузка страницы, cookies, логин (один раз!)
         init_ok = await self._sender.parser.initialize(

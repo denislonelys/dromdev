@@ -64,7 +64,7 @@ class ArenaSender:
                     pass  # не критично — arena.ai использует свою дефолтную
                 result["model"] = model.id
 
-            # Отправить сообщение с retry при rate limit
+            # Отправить сообщение с retry + авто-смена аккаунта при rate limit
             max_attempts = 3
             for attempt in range(1, max_attempts + 1):
                 if not await self.parser.send_message(message):
@@ -75,13 +75,26 @@ class ArenaSender:
                 if response:
                     result["success"] = True
                     result["response"] = response
+                    # Отмечаем аккаунт как рабочий
+                    if hasattr(self, "_account_pool") and self._account_pool:
+                        self._account_pool.mark_working()
                     break
                 else:
+                    # Проверяем если это rate limit — меняем аккаунт
                     if attempt < max_attempts:
-                        logger.warning("Попытка {}/{} не дала ответа — ждём 30с", attempt, max_attempts)
-                        await asyncio.sleep(30)
+                        logger.warning("Попытка {}/{} не дала ответа — меняем аккаунт...", attempt, max_attempts)
+                        if hasattr(self, "_account_pool") and self._account_pool:
+                            self._account_pool.mark_rate_limited()
+                            switched = await self._account_pool.ensure_working_account(self.parser.page)
+                            if switched:
+                                self.parser._logged_in = True
+                                logger.info("✅ Переключились на новый аккаунт")
+                            else:
+                                await asyncio.sleep(30)
+                        else:
+                            await asyncio.sleep(30)
                     else:
-                        result["error"] = "Нет ответа после {} попыток".format(max_attempts)
+                        result["error"] = "Rate limit — дневной лимит arena.ai исчерпан. Автоматически регистрируем новый аккаунт..."
 
         except Exception as e:
             logger.error("Ошибка при отправке запроса: {}", e)
