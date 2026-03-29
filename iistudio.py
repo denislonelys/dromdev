@@ -554,23 +554,29 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
 
                 # ── Yolo ─────────────────────────────────────────────────
                 elif cmd == "yolo":
-                    if not arg:
-                        console.print("[yellow]Использование: /yolo <задача>[/]")
+                    # YOLO - режим где AI может делать действия без подтверждения
+                    yolo_enabled = not getattr(agent, 'yolo_mode', False)
+                    agent.yolo_mode = yolo_enabled
+                    
+                    if yolo_enabled:
+                        console.print(Panel(
+                            "[bold red]⚡ YOLO MODE ВКЛЮЧЁН[/]\n\n"
+                            "[yellow]⚠️ ВНИМАНИЕ![/]\n"
+                            "В этом режиме AI может:\n"
+                            "  • Менять файлы проекта БЕЗ подтверждения\n"
+                            "  • Запускать команды БЕЗ подтверждения\n"
+                            "  • Создавать и удалять файлы\n\n"
+                            "[dim]Всё происходит автоматически![/]",
+                            border_style="red"
+                        ))
+                        console.print("[red]⚡ YOLO режим активирован![/]")
                     else:
-                        from core.context import ProjectContext
-                        from pathlib import Path
-                        ctx = ProjectContext(Path("."))
-                        tree = ctx.get_file_tree(max_depth=3)
-                        prompt = (
-                            f"YOLO РЕЖИМ: выполни задачу полностью и автономно. "
-                            f"Сразу пиши готовый код, команды, файлы.\n\n"
-                            f"Задача: {arg}\n\nПроект:\n```\n{tree}\n```"
-                        )
-                        console.print(f"[bold red]⚡ YOLO MODE[/] — [dim]AI делает всё сам...[/]")
-                        with console.status("[red]⟳ YOLO...[/]"):
-                            r = await agent.chat(prompt, mode="coding")
-                        if r.get("response"):
-                            console.print(Panel(Markdown(r["response"]), title="[red]⚡ YOLO[/]", border_style="red"))
+                        console.print(Panel(
+                            "[bold green]✅ YOLO MODE ОТКЛЮЧЁН[/]\n\n"
+                            "Вернулись в обычный режим с подтверждением действий.",
+                            border_style="green"
+                        ))
+                        console.print("[green]✅ Нормальный режим активирован![/]")
 
                 # ── Files ────────────────────────────────────────────────
                 elif cmd == "files":
