@@ -50,8 +50,8 @@
       "token": "sk-iis-78195fb28355e6c3658c31ef74b50e231b7596168f04838b",
       "prefix": "sk-iis-78195fb",
       "is_active": true,
-      "requests_count": 21,
-      "last_used": "2026-03-29T15:52:23.737988+00:00",
+      "requests_count": 24,
+      "last_used": "2026-03-29T16:08:43.936620+00:00",
       "created_at": "2026-03-29T10:35:15.982686+00:00"
     },
     {
@@ -149,6 +149,34 @@
       "requests_count": 0,
       "last_used": null,
       "created_at": "2026-03-29T16:02:32.671222+00:00"
+    }
+  ],
+  "c30bd20eb739a5fa9f85b4f58dcbb2fa": [
+    {
+      "id": "40d02b7a02b5814d",
+      "user_id": "c30bd20eb739a5fa9f85b4f58dcbb2fa",
+      "email": "final_test@example.com",
+      "name": "Default",
+      "token": "sk-iis-1ff634ae2ccd0f8719c0679f7c72eaa619d7f5857d460836",
+      "prefix": "sk-iis-1ff634a",
+      "is_active": true,
+      "requests_count": 0,
+      "last_used": null,
+      "created_at": "2026-03-29T16:04:34.491627+00:00"
+    }
+  ],
+  "e803599d757365bf21962e2c7b40bfca": [
+    {
+      "id": "3f323968d05fc25c",
+      "user_id": "e803599d757365bf21962e2c7b40bfca",
+      "email": "verify@example.com",
+      "name": "Default",
+      "token": "sk-iis-77845c5cf33e2d28c3006a946bd6d79b6a9a05d463134f8f",
+      "prefix": "sk-iis-77845c5",
+      "is_active": true,
+      "requests_count": 0,
+      "last_used": null,
+      "created_at": "2026-03-29T16:05:28.022252+00:00"
     }
   ]
 }
