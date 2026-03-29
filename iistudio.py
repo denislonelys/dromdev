@@ -249,7 +249,10 @@ async def _interactive_mode(mode: str, model_id: Optional[str], workdir: Optiona
             timeout=5
         )
         
-        behind_count = int(behind.stdout.strip() or "0")
+        try:
+            behind_count = int(behind.stdout.strip() or "0")
+        except (ValueError, TypeError):
+            behind_count = 0
         
         if behind_count > 0:
             console.print("[yellow]Устанавливаю обновления...[/]")
