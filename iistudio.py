@@ -1127,3 +1127,259 @@ if __name__ == "__main__":
     # Поддержка короткого вызова: python iistudio.py "сообщение"
     # без передачи имени команды
     cli()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# dromdev — группа команд (1:1 как RovoDev)
+# Использование: iis dromdev <command>
+# ═══════════════════════════════════════════════════════════════════════════
+
+@cli.group("dromdev")
+def dromdev():
+    """◈ IIStudio dromdev — основной интерфейс AI агента."""
+    pass
+
+
+def _save_iis_config(token: str, server: str, email: str, username: str = "") -> None:
+    import json as _j
+    from pathlib import Path
+    config_dir = Path.home() / ".iistudio"
+    config_dir.mkdir(exist_ok=True)
+    config = {"token": token, "server": server, "email": email, "username": username}
+    (config_dir / "config.json").write_text(_j.dumps(config, indent=2))
+
+
+def _load_iis_config() -> dict:
+    import json as _j
+    from pathlib import Path
+    cfg = Path.home() / ".iistudio" / "config.json"
+    if cfg.exists():
+        try:
+            return _j.loads(cfg.read_text())
+        except Exception:
+            pass
+    return {}
+
+
+@dromdev.command("run")
+@click.option("--model", "-m", default=None, help="Модель: claude-opus-4-6 | claude-sonnet-4-6")
+@click.option("--workdir", "-w", default=".", help="Директория проекта")
+def dromdev_run(model, workdir):
+    """Запустить интерактивного AI агента.
+
+    \b
+    Агент умеет:
+      - Создавать и редактировать файлы
+      - Запускать bash команды
+      - Читать код проекта
+      - Планировать и выполнять задачи
+
+    \b
+    Команды внутри:
+      /help          — справка
+      /model         — сменить модель
+      /files         — список файлов
+      /clear         — очистить историю
+      /exit          — выход
+    """
+    asyncio.run(_interactive_mode("text", model, workdir=workdir))
+
+
+@dromdev.group("auth")
+def dromdev_auth():
+    """Управление аутентификацией."""
+    pass
+
+
+@dromdev_auth.command("login")
+@click.option("--server", default="https://orproject.online", help="URL сервера IIStudio")
+def dromdev_auth_login_cmd(server):
+    """Войти в IIStudio аккаунт.
+
+    \b
+    Пример:
+      iis dromdev auth login
+      iis dromdev auth login --server https://orproject.online
+    """
+    import httpx
+
+    console.print(Panel(
+        f"[bold cyan]◈ IIStudio — Вход[/]\n\n"
+        f"Зарегистрируйся или войди на:\n[cyan]{server}/login[/]",
+        border_style="cyan",
+    ))
+
+    email = console.input("[cyan]Email: [/]").strip()
+    if not email:
+        console.print("[red]Email не введён[/]"); return
+
+    password = console.input("[cyan]Пароль: [/]", password=True).strip()
+
+    if password:
+        try:
+            r = httpx.post(f"{server}/api/auth/login",
+                json={"email": email, "password": password}, timeout=15)
+            d = r.json()
+            if d.get("success") and d.get("api_token"):
+                token = d["api_token"]
+                user = d.get("user", {})
+                _save_iis_config(token, server, email, user.get("username",""))
+                console.print(Panel(
+                    f"[bold green]Вход выполнен![/]\n\n"
+                    f"Email: [cyan]{email}[/]\n"
+                    f"Токен: [dim]{token[:20]}...[/]\n"
+                    f"Баланс: [green]${user.get('balance_usd',0):.4f}[/]\n"
+                    f"Токенов: [cyan]{user.get('free_tokens',0):,}[/]\n\n"
+                    f"[dim]Запусти агента: iis dromdev run[/]",
+                    border_style="green",
+                )); return
+            else:
+                console.print(f"[red]Ошибка: {d.get('detail','Неверные данные')}[/]")
+        except Exception as e:
+            console.print(f"[yellow]Ошибка: {e}[/]")
+
+    # Ввод токена вручную
+    console.print("")
+    token = console.input("[cyan]API токен (sk-iis-...): [/]").strip()
+    if not token:
+        console.print("[red]Токен не введён[/]"); return
+
+    try:
+        r = httpx.get(f"{server}/api/user/me",
+            headers={"Authorization": f"Bearer {token}"}, timeout=10)
+        if r.status_code == 200:
+            user = r.json()
+            _save_iis_config(token, server, user.get("email", email), user.get("username",""))
+            console.print(Panel(
+                f"[bold green]Вход выполнен![/]\n\n"
+                f"Email: [cyan]{user.get('email', email)}[/]\n"
+                f"План: [yellow]{user.get('plan','free').upper()}[/]\n"
+                f"Баланс: [green]${user.get('balance_usd',0):.4f}[/]\n"
+                f"Токенов: [cyan]{user.get('free_tokens',0):,}[/]\n\n"
+                f"[dim]Запусти агента: iis dromdev run[/]",
+                border_style="green",
+            ))
+        else:
+            console.print("[red]Неверный токен[/]")
+    except Exception as e:
+        _save_iis_config(token, server, email, "")
+        console.print(f"[yellow]Сервер недоступен — токен сохранён локально[/]")
+
+
+@dromdev_auth.command("logout")
+def dromdev_auth_logout_cmd():
+    """Выйти из аккаунта."""
+    import json as _j
+    from pathlib import Path
+    cfg = Path.home() / ".iistudio" / "config.json"
+    if cfg.exists():
+        data = _j.loads(cfg.read_text())
+        data.pop("token", None)
+        cfg.write_text(_j.dumps(data, indent=2))
+    console.print("[green]Вышли из аккаунта[/]")
+
+
+@dromdev_auth.command("status")
+def dromdev_auth_status_cmd():
+    """Показать статус аккаунта."""
+    import httpx
+    config = _load_iis_config()
+    token = config.get("token", "")
+    server = config.get("server", "https://orproject.online")
+    if not token:
+        console.print("[yellow]Не авторизован. Запусти: iis dromdev auth login[/]"); return
+    console.print(f"[dim]Сервер: {server}[/]")
+    console.print(f"[dim]Токен: {token[:18]}...[/]")
+    try:
+        r = httpx.get(f"{server}/api/user/me",
+            headers={"Authorization": f"Bearer {token}"}, timeout=10)
+        if r.status_code == 200:
+            user = r.json()
+            console.print(f"\n[bold]Email:[/]   {user.get('email')}")
+            console.print(f"[bold]План:[/]    [yellow]{user.get('plan','free').upper()}[/]")
+            console.print(f"[bold]Баланс:[/]  [green]${user.get('balance_usd',0):.4f}[/]")
+            console.print(f"[bold]Токены:[/]  [cyan]{user.get('free_tokens',0):,} бесплатных[/]")
+        else:
+            console.print("[red]Токен недействителен. Войди снова: iis dromdev auth login[/]")
+    except Exception as e:
+        console.print(f"[yellow]Сервер недоступен: {e}[/]")
+        console.print(f"[dim]Email: {config.get('email','?')}[/]")
+
+
+@dromdev.command("ask")
+@click.argument("message", nargs=-1, required=True)
+@click.option("--model", "-m", default=None)
+@click.option("--stream", "-s", is_flag=True)
+@click.option("--no-cache", is_flag=True)
+def dromdev_ask_cmd(message, model, stream, no_cache):
+    """Задать вопрос AI."""
+    asyncio.run(_run_chat(" ".join(message), "text", model, stream, False, no_cache))
+
+
+@dromdev.command("plan")
+@click.argument("task", nargs=-1, required=True)
+def dromdev_plan_cmd(task):
+    """Составить план задачи."""
+    t = " ".join(task)
+    asyncio.run(_run_chat(
+        f"Составь подробный пошаговый план выполнения задачи. "
+        f"Разбей на конкретные шаги.\n\nЗадача: {t}", "text", None, False, False, False))
+
+
+@dromdev.command("fix")
+@click.argument("description", nargs=-1, required=True)
+def dromdev_fix_cmd(description):
+    """Найти и исправить проблему."""
+    d = " ".join(description)
+    asyncio.run(_run_chat(
+        f"Найди и исправь следующую проблему. Покажи причину и исправленный код.\n\nПроблема: {d}",
+        "coding", None, False, False, False))
+
+
+@dromdev.command("review")
+@click.argument("path", default=".", required=False)
+def dromdev_review_cmd(path):
+    """Провести код-ревью файла или директории."""
+    from core.context import ProjectContext
+    from pathlib import Path as _Path
+    ctx = ProjectContext(_Path(path) if _Path(path).is_dir() else _Path("."))
+    p = _Path(path)
+    if p.is_file():
+        content = ctx.read_file(p) or "[не удалось прочитать]"
+        prompt = f"Код-ревью файла {path}:\n\n```\n{content[:6000]}\n```"
+    else:
+        tree = ctx.get_file_tree(max_depth=3)
+        prompt = f"Код-ревью проекта. Топ-10 рекомендаций:\n\n```\n{tree}\n```"
+    asyncio.run(_run_chat(prompt, "coding", None, False, False, False))
+
+
+@dromdev.command("yolo")
+@click.argument("task", nargs=-1, required=True)
+def dromdev_yolo_cmd(task):
+    """YOLO: AI выполняет задачу автономно, создавая файлы."""
+    from core.context import ProjectContext
+    from pathlib import Path as _Path
+    t = " ".join(task)
+    ctx = ProjectContext(_Path("."))
+    tree = ctx.get_file_tree(max_depth=3)
+    console.print(f"[bold red]YOLO MODE[/] — [dim]AI выполняет задачу автономно...[/]")
+    asyncio.run(_run_chat(
+        f"YOLO РЕЖИМ: выполни задачу автономно. Создай все нужные файлы.\n\n"
+        f"Задача: {t}\n\nПроект:\n```\n{tree}\n```", "coding", None, False, False, False))
+
+
+@dromdev.command("tasks")
+def dromdev_tasks_cmd():
+    """Показать доску задач."""
+    from core.tasks import TaskTracker
+    _print_task_board(TaskTracker())
+
+
+@dromdev.command("models")
+@click.option("--mode", "-m", default=None)
+def dromdev_models_cmd(mode):
+    """Список доступных AI моделей."""
+    from arena.models import MODES
+    modes = [mode] if mode else list(MODES)
+    for m in modes:
+        _print_models_table(m)

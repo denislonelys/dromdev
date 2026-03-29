@@ -20,7 +20,8 @@
       <div style="color:var(--text2);margin-bottom:1rem;font-size:.9rem">Нужен Python 3.10+ (Ubuntu/Debian/Mac/Windows WSL)</div>
       <div style="background:var(--bg2);border-radius:8px;padding:1rem;font-family:var(--font-mono);font-size:.85rem;position:relative">
         <button onclick="copy(this, 'step1')" style="position:absolute;top:.5rem;right:.5rem;background:var(--surface2);border:none;color:var(--text2);padding:.25rem .5rem;border-radius:4px;cursor:pointer;font-size:.75rem">копировать</button>
-        <div id="step1">git clone https://github.com/denislonelys/dromdev IIStudio
+        <div id="step1"># Установка (Ubuntu/Debian/Mac):
+git clone https://github.com/denislonelys/dromdev IIStudio
 cd IIStudio &amp;&amp; bash install.sh</div>
       </div>
     </div>
@@ -48,14 +49,14 @@ cd IIStudio &amp;&amp; bash install.sh</div>
       </div>
       <div style="background:var(--bg2);border-radius:8px;padding:1rem;font-family:var(--font-mono);font-size:.85rem;position:relative;margin-bottom:1rem">
         <button onclick="copy(this, 'step3')" style="position:absolute;top:.5rem;right:.5rem;background:var(--surface2);border:none;color:var(--text2);padding:.25rem .5rem;border-radius:4px;cursor:pointer;font-size:.75rem">копировать</button>
-        <div id="step3"># Войди с токеном из кабинета:
-iis auth login --token sk-iis-...
+        <div id="step3"># Войди (интерактивно — введи email и токен):
+iis dromdev auth login
 
-# Спроси AI:
-iis ask "напиши hello world на Python"
+# Запусти агента:
+iis dromdev run
 
-# Интерактивный чат:
-iis chat</div>
+# Или одиночный запрос:
+iis dromdev ask "напиши hello world на Python"</div>
       </div>
     </div>
 
@@ -66,38 +67,39 @@ iis chat</div>
     <h3 class="status-card-title">Все команды CLI</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.875rem">
       <div>
-        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Запросы к AI</div>
+        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Основные</div>
         <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
-          <div>iis ask "вопрос"</div>
-          <div>iis chat</div>
-          <div>iis ask --model claude-opus-4-6 "..."</div>
-          <div>iis ask --stream "..."</div>
-        </div>
-      </div>
-      <div>
-        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Инструменты</div>
-        <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
-          <div>iis plan "задача"</div>
-          <div>iis fix "описание бага"</div>
-          <div>iis review .</div>
-          <div>iis yolo "создай проект"</div>
-        </div>
-      </div>
-      <div>
-        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Задачи</div>
-        <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
-          <div>iis tasks</div>
-          <div>iis task add "описание #тег"</div>
-          <div>iis task done ID</div>
+          <div>iis dromdev run</div>
+          <div>iis dromdev ask "вопрос"</div>
+          <div>iis dromdev ask -m claude-sonnet-4-6 "..."</div>
+          <div>iis dromdev ask --stream "..."</div>
         </div>
       </div>
       <div>
         <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Аккаунт</div>
         <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
-          <div>iis auth login</div>
-          <div>iis auth register</div>
-          <div>iis auth status</div>
+          <div>iis dromdev auth login</div>
+          <div>iis dromdev auth logout</div>
+          <div>iis dromdev auth status</div>
           <div>iis version</div>
+        </div>
+      </div>
+      <div>
+        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Инструменты</div>
+        <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
+          <div>iis dromdev plan "задача"</div>
+          <div>iis dromdev fix "баг"</div>
+          <div>iis dromdev review .</div>
+          <div>iis dromdev yolo "создай проект"</div>
+        </div>
+      </div>
+      <div>
+        <div style="color:var(--accent);font-weight:600;margin-bottom:.5rem">Задачи</div>
+        <div style="font-family:var(--font-mono);color:var(--text2);line-height:2">
+          <div>iis dromdev tasks</div>
+          <div>iis task add "описание #тег"</div>
+          <div>iis task done ID</div>
+          <div>iis dromdev models</div>
         </div>
       </div>
     </div>
