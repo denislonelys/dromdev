@@ -54,6 +54,8 @@ SYSTEM_PROMPT = SYSTEM_PROMPT_WITH_TOOLS
 
 def get_system_prompt(model_id: str) -> str:
     """Возвращает системный промпт с информацией о модели."""
+    from datetime import datetime
+    
     model_info = MODELS.get(model_id, MODELS.get(DEFAULT_MODEL))
     model_name = model_info.get("name", "Claude")
     
