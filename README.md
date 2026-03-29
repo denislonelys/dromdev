@@ -52,44 +52,66 @@
 
 ## 🚀 Быстрый старт
 
-### Вариант 1: Python (для разработки)
+### ✅ Вариант 1: IIS CLI (рекомендуется)
 
 ```bash
 # 1. Клонировать репозиторий
-git clone https://github.com/yourusername/dromdev.git
+git clone https://github.com/denislonelys/dromdev.git
 cd dromdev
 
 # 2. Установить зависимости
 pip install -r requirements.txt
-playwright install chromium
 
-# 3. Настроить конфигурацию
-cp .env.example .env
-nano .env          # заполнить ARENA_EMAIL, ARENA_PASSWORD и др.
-
-# 4. Добавить прокси (если нужны)
-nano proxy.txt     # добавить MTProto/SOCKS5 прокси
-
-# 5. Запустить!
-python main.py
+# 3. Запустить интерактивный режим
+iis dromdev run
 ```
 
-### Вариант 2: Docker (рекомендуется для сервера)
+**При регистрации получите:**
+- ✅ **$2000 USD** приветственный бонус
+- ✅ **500,000 токенов** для траты
+- ✅ **Claude Opus 4.6** по умолчанию
+- ✅ **28 интерактивных команд**
+
+**Команды в интерактиве:**
+```
+You > /help                  ← все 28 команд
+You > /prune                 ← сжать контекст (200k budget)
+You > /yolo создай API       ← YOLO режим (AI делает всё)
+You > /plan задача           ← план от AI
+You > /ask вопрос?           ← read-only запрос
+You > /model                 ← выбрать модель (Sonnet/Opus)
+You > /sessions              ← управление сессиями
+You > /exit                  ← выход
+```
+
+### Вариант 2: Docker (для изоляции)
 
 ```bash
-git clone https://github.com/yourusername/dromdev.git
+git clone https://github.com/denislonelys/dromdev.git
 cd dromdev
-cp .env.example .env && nano .env
-nano proxy.txt
-docker-compose up -d
+docker build -t iistudio .
+docker run -it iistudio iis dromdev run
 ```
 
-### Вариант 3: pm2 (для постоянной работы на сервере)
+### Вариант 3: PM2 (для постоянной работы на сервере)
 
 ```bash
-npm install -g pm2
-pm2 start main.py --interpreter python3 --name dromdev
+npm install -g pm2  # если не установлен
+git clone https://github.com/denislonelys/dromdev.git
+cd dromdev
+pip install -r requirements.txt
+pm2 start iistudio.py --name=iistudio --interpreter=python3 -- chat
 pm2 save && pm2 startup
+```
+
+### Вариант 4: Systemd (автозапуск при перезагрузке)
+
+```bash
+git clone https://github.com/denislonelys/dromdev.git
+cd dromdev
+pip install -r requirements.txt
+sudo systemctl enable iistudio
+sudo systemctl start iistudio
 ```
 
 ---
