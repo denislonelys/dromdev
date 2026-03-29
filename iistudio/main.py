@@ -164,40 +164,41 @@ def cmd_chat(mode, model):
 # ── Интерактивный режим ───────────────────────────────────────────────────────
 
 REPL_HELP = """
-[bold cyan]◈ IIStudio — команды[/]
+[bold cyan]◈ IIStudio dromdev — команды агента[/]
 
-[yellow]Запросы:[/]
-  [cyan]<текст>[/]               — отправить запрос AI
-  [cyan]/stream <текст>[/]       — стриминг ответа
-  [cyan]/compare <текст>[/]      — сравнить все модели
+[yellow]Запросы к AI:[/]
+  [cyan]<текст>[/]               — отправить запрос
+  [cyan]/ask[/] <текст>          — запрос к AI
+  [cyan]/stream[/] <текст>       — стриминг ответа
 
-[yellow]Режим и модели:[/]
-  [cyan]/mode[/] text|images|video|coding
-  [cyan]/model[/] gpt-4o|claude-3-5-sonnet|...
-  [cyan]/models[/]               — список всех моделей
-  [cyan]/models coding[/]        — модели для режима
+[yellow]Инструменты разработчика:[/]
+  [cyan]/plan[/] <задача>        — план выполнения задачи
+  [cyan]/fix[/] <проблема>       — найти и исправить баг
+  [cyan]/review[/] [файл|.]      — код-ревью файла или проекта
+  [cyan]/yolo[/] <задача>        — автономное выполнение задачи
 
-[yellow]Задачи (Tasks):[/]
-  [cyan]/task[/]                 — доска задач
+[yellow]Файлы и проект:[/]
+  [cyan]/files[/]                — список файлов проекта
+  [cyan]/files[/] <путь>         — список файлов в директории
+  [cyan]/run[/] <команда>        — выполнить bash команду
+
+[yellow]Модели:[/]
+  [cyan]/models[/]               — список доступных моделей
+  [cyan]/model[/] <id>           — сменить модель
+  Available: claude-opus-4-6 | claude-sonnet-4-6
+
+[yellow]Задачи:[/]
+  [cyan]/tasks[/]                — доска задач
   [cyan]/task add[/] описание #тег  — создать задачу
   [cyan]/task start[/] ID        — взять в работу
   [cyan]/task done[/] ID         — выполнено
   [cyan]/task block[/] ID        — заблокировано
 
-[yellow]Инструменты:[/]
-  [cyan]/plan[/] <задача>        — план от AI
-  [cyan]/fix[/] <проблема>       — исправить баг
-  [cyan]/review[/] [файл|.]      — код-ревью
-  [cyan]/yolo[/] <задача>        — YOLO: AI делает всё сам
-
-[yellow]Прочее:[/]
-  [cyan]/status[/]               — статус системы
-  [cyan]/proxy[/]                — список прокси
-  [cyan]/proxy switch[/]         — сменить прокси
+[yellow]История и настройки:[/]
   [cyan]/history[/]              — история диалога
   [cyan]/clear[/]                — очистить историю
-  [cyan]/cache clear[/]          — очистить кэш
-  [cyan]/screenshot[/]           — скриншот браузера
+  [cyan]/version[/]              — версия IIStudio
+  [cyan]/status[/]               — статус системы
   [cyan]/help[/] или [cyan]/?[/]            — эта справка
   [cyan]/exit[/] или [cyan]Ctrl+C[/]        — выход
 """
