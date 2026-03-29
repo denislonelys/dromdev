@@ -1,0 +1,33 @@
+{
+  "session_id": "16738471",
+  "mode": "text",
+  "model_id": "gpt-4o",
+  "created_at": "2026-03-29T06:53:10.752973+00:00",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Скажи одно слово: привет",
+      "model_id": null,
+      "mode": "text",
+      "created_at": "2026-03-29T06:53:19.097456+00:00",
+      "latency_ms": null
+    },
+    {
+      "role": "assistant",
+      "content": "Привет",
+      "model_id": "gpt-4o",
+      "mode": "text",
+      "created_at": "2026-03-29T06:53:33.993780+00:00",
+      "latency_ms": 14895.084765041247
+    },
+    {
+      "role": "user",
+      "content": "Напиши hello world на Python",
+      "model_id": null,
+      "mode": "text",
+      "created_at": "2026-03-29T06:53:33.993843+00:00",
+      "latency_ms": null
+    }
+  ],
+  "metadata": {}
+}

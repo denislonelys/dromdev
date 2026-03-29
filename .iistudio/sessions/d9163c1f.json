@@ -1,0 +1,25 @@
+{
+  "session_id": "d9163c1f",
+  "mode": "text",
+  "model_id": "gpt-4o",
+  "created_at": "2026-03-29T06:50:29.782051+00:00",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Скажи одно слово: да",
+      "model_id": null,
+      "mode": "text",
+      "created_at": "2026-03-29T06:50:38.395519+00:00",
+      "latency_ms": null
+    },
+    {
+      "role": "assistant",
+      "content": "Привет",
+      "model_id": "gpt-4o",
+      "mode": "text",
+      "created_at": "2026-03-29T06:52:17.739191+00:00",
+      "latency_ms": 99342.25965896621
+    }
+  ],
+  "metadata": {}
+}

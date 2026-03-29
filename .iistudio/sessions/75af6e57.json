@@ -1,0 +1,41 @@
+{
+  "session_id": "75af6e57",
+  "mode": "text",
+  "model_id": "gpt-4o",
+  "created_at": "2026-03-29T08:37:26.221212+00:00",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Напиши hello world на Python",
+      "model_id": null,
+      "mode": "text",
+      "created_at": "2026-03-29T08:37:35.721255+00:00",
+      "latency_ms": null
+    },
+    {
+      "role": "assistant",
+      "content": "```python\nprint(\"Hello, World!\")\n```",
+      "model_id": "gpt-4o",
+      "mode": "text",
+      "created_at": "2026-03-29T08:37:35.722092+00:00",
+      "latency_ms": null
+    },
+    {
+      "role": "user",
+      "content": "Объясни что такое list comprehension в Python",
+      "model_id": null,
+      "mode": "text",
+      "created_at": "2026-03-29T08:37:40.727498+00:00",
+      "latency_ms": null
+    },
+    {
+      "role": "assistant",
+      "content": "\n\n# List Comprehension в Python\n\n**List comprehension** (списковое включение) — это компактный способ создания списков на основе существующих итерируемых объектов.\n\n## Базовый синтаксис\n\n```python\nновый_список = [выражение for элемент in итерируемый_объект]\n```\n\n## Простой пример\n\nБез list comprehension:\n```python\nsquares = []\nfor x in range(5):\n    squares.append(x ** 2)\n# [0, 1, 4, 9, 16]\n```\n\nС list comprehension:\n```python\nsquares = [x ** 2 for x in range(5)]\n# [0, 1, 4, 9, 16]\n```\n\n## С условием (фильтрация)\n\n```python\n# Только чётные числа\nevens = [x for x in range(10) if x % 2 == 0]\n# [0, 2, 4, 6, 8]\n\n# Слова длиннее 3 символов\nwords = [\"hi\", \"hello\", \"hey\", \"world\"]\nlong_words = [w for w in words if len(w) > 3]\n# ['hello', 'world']\n```\n\n## С `if-else` (преобразование)\n\n```python\n# if-else ставится ПЕРЕД for\nlabels = [\"чёт\" if x % 2 == 0 else \"нечёт\" for x in range(5)]\n# ['чёт', 'нечёт', 'чёт', 'нечёт', 'чёт']\n```\n\n> ⚠️ Обратите внимание на разницу в позиции:\n> - **Фильтрация** (`if`) → **после** `for`\n> - **Преобразование** (`if-else`) → **перед** `for`\n\n## Вложенные циклы\n\n```python\n# Все пары (x, y)\npairs = [(x, y) for x in range(3) for y in range(3)]\n# [(0,0), (0,1), (0,2), (1,0), (1,1), (1,2), (2,0), (2,1), (2,2)]\n\n# Развернуть вложенный список (flatten)\nmatrix = [[1, 2], [3, 4], [5, 6]]\nflat = [num for row in matrix for num in row]\n# [1, 2, 3, 4, 5, 6]\n```\n\n## Вложенный list comprehension\n\n```python\n# Транспонирование матрицы\nmatrix = [[1, 2, 3],\n          [4, 5, 6]]\n\ntransposed = [[row[i] for row in matrix] for i in range(3)]\n# [[1, 4], [2, 5], [3, 6]]\n```\n\n## Работа со строками\n\n```python\n# Извлечь заглавные буквы\ntext = \"Hello World\"\nupper = [ch for ch in text if ch.isupper()]\n# ['H', 'W']\n```\n\n## Аналоги для других структур\n\n```python\n# Dict comprehension\nsq_dict = {x: x**2 for x in range(5)}\n# {0: 0, 1: 1, 2: 4, 3: 9, 4: 16}\n\n# Set comprehension\nsq_set = {x % 3 for x in range(10)}\n# {0, 1, 2}\n\n# Generator expression (круглые скобки)\nsq_gen = (x**2 for x in range(5))\n# генератор — ленивое вычисление\n```\n\n## Когда использовать, а когда — нет\n\n| ✅ Используйте | ❌ Не используйте |\n|---|---|\n| Простые преобразования | Сложная логика (много вложенности) |\n| Фильтрация данных | Побочные эффекты (print, запись в файл) |\n| Код читается легко | Когда comprehension трудно читать |\n\n**Правило:** если comprehension не помещается в одну читабельную строку — лучше используйте обычный цикл `for`.",
+      "model_id": "gpt-4o",
+      "mode": "text",
+      "created_at": "2026-03-29T08:38:01.192214+00:00",
+      "latency_ms": 20462.458687019534
+    }
+  ],
+  "metadata": {}
+}

@@ -1,0 +1,29 @@
+[Unit]
+Description=IIStudio Chrome Browser (Xvfb + reCAPTCHA bypass)
+After=network.target iistudio-xvfb.service
+Before=iistudio.service
+
+[Service]
+Type=simple
+User=root
+Environment=DISPLAY=:99
+Environment=HOME=/root
+# Если Chrome уже слушает на 9222 — не запускаем новый
+ExecStart=/bin/bash -c '\
+    curl -s http://localhost:9222/json/version >/dev/null 2>&1 && sleep infinity || \
+    exec /root/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome \
+        --no-sandbox \
+        --disable-dev-shm-usage \
+        --disable-blink-features=AutomationControlled \
+        --remote-debugging-port=9222 \
+        --user-data-dir=/tmp/iistudio-chrome \
+        --window-size=1920,1080 \
+        --no-first-run \
+        --disable-notifications \
+        --disable-popup-blocking \
+        about:blank'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

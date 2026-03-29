@@ -1,0 +1,25 @@
+{
+  "session_id": "8d0622a0",
+  "mode": "text",
+  "model_id": "gpt-4o",
+  "created_at": "2026-03-29T08:36:53.985510+00:00",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Say: hi",
+      "model_id": null,
+      "mode": "text",
+      "created_at": "2026-03-29T08:37:03.423685+00:00",
+      "latency_ms": null
+    },
+    {
+      "role": "assistant",
+      "content": "Hi! How are you doing today? 😊",
+      "model_id": "gpt-4o",
+      "mode": "text",
+      "created_at": "2026-03-29T08:37:09.540952+00:00",
+      "latency_ms": 6115.570473950356
+    }
+  ],
+  "metadata": {}
+}

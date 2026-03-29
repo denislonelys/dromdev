@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}IIStudio — AI Chat{% endblock %}
+
+{% block content %}
+<div class="chat-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <label class="sidebar-label">Режим</label>
+      <div class="mode-tabs">
+        {% for mode in ['text', 'images', 'video', 'coding'] %}
+        <button class="mode-tab {% if loop.first %}active{% endif %}"
+                data-mode="{{ mode }}"
+                onclick="setMode('{{ mode }}')">
+          {{ {'text': '💬', 'images': '🎨', 'video': '🎬', 'coding': '💻'}[mode] }}
+          {{ mode | capitalize }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <label class="sidebar-label">Модель</label>
+      <select id="modelSelect" class="sidebar-select" onchange="setModel(this.value)">
+        <option value="">— по умолчанию —</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <label class="sidebar-label">Опции</label>
+      <label class="toggle-row">
+        <span>Кэш</span>
+        <input type="checkbox" id="useCache" checked />
+      </label>
+      <label class="toggle-row">
+        <span>Стриминг</span>
+        <input type="checkbox" id="useStream" />
+      </label>
+    </div>
+
+    <div class="sidebar-section">
+      <button class="btn btn-outline btn-sm" onclick="clearHistory()">🗑 Очистить историю</button>
+    </div>
+
+    <div class="sidebar-section proxy-info" id="proxyInfo">
+      <label class="sidebar-label">Прокси</label>
+      <div class="proxy-status" id="proxyStatus">Загрузка...</div>
+    </div>
+  </aside>
+
+  <!-- Chat area -->
+  <div class="chat-area">
+    <div class="chat-messages" id="chatMessages">
+      <div class="welcome-message">
+        <div class="welcome-icon">◈</div>
+        <h2>IIStudio AI Orchestrator</h2>
+        <p>Выбери режим и модель, затем введи запрос.</p>
+        <div class="quick-prompts">
+          <button class="quick-prompt" onclick="sendQuickPrompt('Объясни разницу между TCP и UDP простыми словами')">Объясни TCP vs UDP</button>
+          <button class="quick-prompt" onclick="sendQuickPrompt('Напиши функцию сортировки пузырьком на Python с объяснением')">Сортировка на Python</button>
+          <button class="quick-prompt" onclick="sendQuickPrompt('Что такое Docker и зачем он нужен?')">Что такое Docker?</button>
+          <button class="quick-prompt" onclick="sendQuickPrompt('Напиши SQL запрос для выборки топ-10 пользователей по количеству заказов')">SQL запрос</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="chat-input-wrapper">
+        <textarea
+          id="chatInput"
+          class="chat-input"
+          placeholder="Введи сообщение... (Enter — отправить, Shift+Enter — новая строка)"
+          rows="1"
+          onkeydown="handleInputKeydown(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <div class="chat-input-actions">
+          <button class="btn btn-primary" id="sendBtn" onclick="sendMessage()">
+            <span id="sendBtnText">Отправить</span>
+            <span id="sendBtnLoader" class="btn-loader hidden">⟳</span>
+          </button>
+          <button class="btn btn-outline" onclick="compareModels()" title="Сравнить все модели">⚖</button>
+        </div>
+      </div>
+      <div class="chat-input-hint" id="chatHint">
+        Режим: <span id="hintMode">text</span> | Модель: <span id="hintModel">по умолчанию</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/chat.js"></script>
+{% endblock %}

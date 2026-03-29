@@ -1,0 +1,17 @@
+{
+  "session_id": "7915d4ba",
+  "mode": "text",
+  "model_id": "gpt-4o",
+  "created_at": "2026-03-29T06:54:12.368312+00:00",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Напиши hello world на Python",
+      "model_id": null,
+      "mode": "text",
+      "created_at": "2026-03-29T06:54:20.746352+00:00",
+      "latency_ms": null
+    }
+  ],
+  "metadata": {}
+}

@@ -1,0 +1,1 @@
+"""IIStudio FastAPI application."""

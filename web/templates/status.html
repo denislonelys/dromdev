@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}IIStudio — Статус{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <div class="page-header">
+    <h1>Статус системы</h1>
+    <button class="btn btn-outline btn-sm" onclick="location.reload()">↻ Обновить</button>
+  </div>
+
+  <div class="status-grid">
+    <!-- Система -->
+    <div class="status-card">
+      <h3 class="status-card-title">⚙ Система</h3>
+      <div class="status-rows">
+        <div class="status-row">
+          <span class="status-key">Версия</span>
+          <span class="status-val">{{ system.version }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">Окружение</span>
+          <span class="status-val">{{ system.env }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">Браузер</span>
+          <span class="status-val {% if system.browser_running %}text-green{% else %}text-red{% endif %}">
+            {{ '✅ Запущен' if system.browser_running else '❌ Остановлен' }}
+          </span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">Режим</span>
+          <span class="status-val">{{ system.mode }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">Модель</span>
+          <span class="status-val">{{ system.model or '—' }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">Сессия</span>
+          <span class="status-val mono">{{ system.session_id }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">Сообщений</span>
+          <span class="status-val">{{ system.messages }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Кэш -->
+    <div class="status-card">
+      <h3 class="status-card-title">💾 Кэш</h3>
+      <div class="status-rows">
+        <div class="status-row">
+          <span class="status-key">Backend</span>
+          <span class="status-val">{{ system.cache.backend }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">Записей</span>
+          <span class="status-val">{{ system.cache.size }}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-key">TTL</span>
+          <span class="status-val">{{ system.cache.ttl }}с</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Прокси -->
+    <div class="status-card status-card-wide">
+      <h3 class="status-card-title">🌐 Прокси</h3>
+      <div class="status-row">
+        <span class="status-key">Текущий</span>
+        <span class="status-val mono">{{ system.proxy.current or 'нет' }}</span>
+      </div>
+      {% if proxies %}
+      <div class="proxy-table-wrap">
+        <table class="proxy-table">
+          <thead>
+            <tr>
+              <th>Хост</th><th>Порт</th><th>Тип</th><th>Статус</th><th>Latency</th><th>Ошибки</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in proxies %}
+            <tr>
+              <td class="mono">{{ p.host }}</td>
+              <td>{{ p.port }}</td>
+              <td><span class="badge badge-{{ p.type }}">{{ p.type }}</span></td>
+              <td>
+                <span class="{% if p.alive %}text-green{% else %}text-red{% endif %}">
+                  {{ '✅ alive' if p.alive else '❌ dead' }}
+                </span>
+              </td>
+              <td>{{ '%.0f мс' % p.latency_ms if p.latency_ms else '—' }}</td>
+              <td>{{ p.failures }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted">Прокси не загружены</p>
+      {% endif %}
+      <div class="proxy-actions">
+        <button class="btn btn-outline btn-sm" onclick="switchProxy()">⇄ Переключить прокси</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function switchProxy() {
+  const r = await fetch('/api/proxy/switch', {method: 'POST'});
+  const d = await r.json();
+  alert('Прокси: ' + (d.proxy || d.status));
+  location.reload();
+}
+</script>
+{% endblock %}

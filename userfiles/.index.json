@@ -1,0 +1,58 @@
+{
+  "updated_at": "2026-03-29T11:05:30.897987",
+  "total_files": 4,
+  "total_size": 2174,
+  "categories": {
+    "documents": {
+      "count": 3,
+      "size": 2153
+    },
+    "other": {
+      "count": 1,
+      "size": 21
+    }
+  },
+  "files": [
+    {
+      "name": "env_example.txt",
+      "path": "documents/env_example.txt",
+      "url": "/files/documents/env_example.txt",
+      "category": "documents",
+      "size": 2106,
+      "size_human": "2.1 КБ",
+      "extension": ".txt",
+      "modified": "2026-03-29T11:05:24.659638"
+    },
+    {
+      "name": "project.md",
+      "path": "documents/project.md",
+      "url": "/files/documents/project.md",
+      "category": "documents",
+      "size": 22,
+      "size_human": "22.0 Б",
+      "extension": ".md",
+      "modified": "2026-03-29T11:05:24.657638"
+    },
+    {
+      "name": "query.sql",
+      "path": "documents/query.sql",
+      "url": "/files/documents/query.sql",
+      "category": "other",
+      "size": 21,
+      "size_human": "21.0 Б",
+      "extension": ".sql",
+      "modified": "2026-03-29T11:05:24.657638"
+    },
+    {
+      "name": "readme.txt",
+      "path": "documents/readme.txt",
+      "url": "/files/documents/readme.txt",
+      "category": "documents",
+      "size": 25,
+      "size_human": "25.0 Б",
+      "extension": ".txt",
+      "modified": "2026-03-29T11:03:36.591286"
+    }
+  ],
+  "total_size_human": "2.1 КБ"
+}

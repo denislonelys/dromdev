@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}IIStudio — Модели{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <div class="page-header">
+    <h1>AI Модели</h1>
+    <p class="page-subtitle">Доступно {{ total }} моделей на arena.ai</p>
+  </div>
+
+  {% for mode_id, models in by_mode.items() %}
+  <section class="models-section">
+    <h2 class="section-title">
+      {{ {'text': '💬 Text', 'images': '🎨 Images', 'video': '🎬 Video', 'coding': '💻 Coding'}[mode_id] }}
+      <span class="section-count">{{ models | length }}</span>
+    </h2>
+    <div class="models-grid">
+      {% for m in models %}
+      <div class="model-card {% if m.is_default %}model-card-default{% endif %}">
+        {% if m.is_default %}
+        <div class="model-badge">★ По умолчанию</div>
+        {% endif %}
+        <div class="model-name">{{ m.name }}</div>
+        <div class="model-provider">{{ m.provider }}</div>
+        {% if m.context_k %}
+        <div class="model-context">Контекст: {{ m.context_k }}K</div>
+        {% endif %}
+        {% if m.description %}
+        <div class="model-desc">{{ m.description }}</div>
+        {% endif %}
+        <div class="model-id">ID: <code>{{ m.id }}</code></div>
+        <button class="btn btn-outline btn-sm"
+                onclick="window.location='/?model={{ m.id }}&mode={{ mode_id }}'">
+          Использовать
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

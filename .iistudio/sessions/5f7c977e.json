@@ -1,0 +1,25 @@
+{
+  "session_id": "5f7c977e",
+  "mode": "text",
+  "model_id": "gpt-4o",
+  "created_at": "2026-03-29T08:49:38.112788+00:00",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Напиши hello world на Python",
+      "model_id": null,
+      "mode": "text",
+      "created_at": "2026-03-29T08:49:47.509059+00:00",
+      "latency_ms": null
+    },
+    {
+      "role": "assistant",
+      "content": "```python\nprint(\"Hello, World!\")\n```",
+      "model_id": "gpt-4o",
+      "mode": "text",
+      "created_at": "2026-03-29T08:49:47.510140+00:00",
+      "latency_ms": null
+    }
+  ],
+  "metadata": {}
+}

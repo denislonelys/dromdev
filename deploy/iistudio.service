@@ -1,0 +1,20 @@
+[Unit]
+Description=IIStudio API Server
+After=network.target iistudio-chrome.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/IIStudio
+Environment=DISPLAY=:99
+Environment=HOME=/root
+ExecStartPre=/bin/bash -c 'until curl -s http://localhost:9222/json/version >/dev/null 2>&1; do sleep 2; done'
+ExecStart=/usr/local/bin/iis serve
+Restart=always
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=iistudio
+
+[Install]
+WantedBy=multi-user.target

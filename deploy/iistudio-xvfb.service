@@ -1,0 +1,17 @@
+[Unit]
+Description=IIStudio Xvfb Virtual Display
+After=network.target
+Before=iistudio-chrome.service
+
+[Service]
+Type=simple
+User=root
+# Если :99 уже занят — пропускаем запуск (идемпотентный старт)
+ExecStartPre=/bin/bash -c 'xdpyinfo -display :99 >/dev/null 2>&1 && exit 0; true'
+ExecStart=/bin/bash -c 'xdpyinfo -display :99 >/dev/null 2>&1 && sleep infinity || exec /usr/bin/Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp'
+Restart=on-failure
+RestartSec=5
+Environment=DISPLAY=:99
+
+[Install]
+WantedBy=multi-user.target

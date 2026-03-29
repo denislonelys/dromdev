@@ -1,0 +1,17 @@
+[Unit]
+Description=IIStudio File Watcher (auto-index user files)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/IIStudio
+ExecStart=/usr/local/bin/python3 /root/IIStudio/deploy/file_watcher.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=iistudio-watcher
+
+[Install]
+WantedBy=multi-user.target
