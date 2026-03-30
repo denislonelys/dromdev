@@ -37,11 +37,11 @@ echo ""
 # 3. Устанавливаем зависимости Python
 echo "3️⃣  Устанавливаю зависимости Python..."
 pip install -q -r requirements.txt
-echo "✅ Зависимости установлены"
+echo "✅ requirements.txt установлены"
 echo ""
 
-# 4. Устанавливаем iis CLI
-echo "4️⃣  Устанавливаю iis CLI..."
+# 4. Устанавливаем пакет и iis CLI
+echo "4️⃣  Устанавливаю пакет iistudio и CLI..."
 pip install -q -e .
 echo "✅ iis CLI установлен"
 echo ""
@@ -49,7 +49,7 @@ echo ""
 # 5. Проверяем установку
 echo "5️⃣  Проверяю установку..."
 if iis --help >/dev/null 2>&1; then
-    echo "✅ iis рабо��ает!"
+    echo "✅ iis работает!"
 else
     echo "⚠️  iis может не работать, но можешь использовать python3 iistudio.py"
 fi
