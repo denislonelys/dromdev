@@ -263,7 +263,7 @@ class IIStudioAgent:
 
         # Отправляем в KiroAI через OmniRoute
         try:
-            async with httpx.AsyncClient(timeout=120) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
                 # Используем async stream для полного чтения ответа
                 async with client.stream(
                     "POST",
@@ -374,7 +374,7 @@ class IIStudioAgent:
 
         full_text = ""
         try:
-            async with httpx.AsyncClient(timeout=120) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
                 async with client.stream(
                     "POST",
                     f"{OMNI_URL.rstrip('/').rstrip('/v1')}/v1/chat/completions",
