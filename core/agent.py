@@ -238,7 +238,9 @@ class IIStudioAgent:
         # Отправляем в KiroAI через OmniRoute
         try:
             async with httpx.AsyncClient(timeout=120) as client:
-                resp = await client.post(
+                # Используем async stream для полного чтения ответа
+                async with client.stream(
+                    "POST",
                     f"{OMNI_URL.rstrip('/').rstrip('/v1')}/v1/chat/completions",
                     headers={
                         "Authorization": f"Bearer {OMNI_API_KEY}",
@@ -250,35 +252,35 @@ class IIStudioAgent:
                         "max_tokens": 4096,
                         "stream":     True,  # OmniRoute возвращает SSE стриминг
                     },
-                )
+                ) as resp:
+                    if resp.status_code != 200:
+                        error_text = await resp.aread()
+                        result["error"] = f"API error {resp.status_code}: {error_text[:200]}"
+                        return result
 
-                if resp.status_code != 200:
-                    result["error"] = f"API error {resp.status_code}: {resp.text[:200]}"
-                    return result
-
-                # Читаем SSE стриминг
-                import json as _json
-                text = ""
-                input_tokens = 0
-                output_tokens = 0
-                for line in resp.text.split("\n"):
-                    line = line.strip()
-                    if not line or not line.startswith("data:"):
-                        continue
-                    data_str = line[5:].strip()
-                    if data_str == "[DONE]":
-                        break
-                    try:
-                        chunk = _json.loads(data_str)
-                        delta = chunk.get("choices",[{}])[0].get("delta",{}).get("content","")
-                        if delta:
-                            text += delta
-                        usage_chunk = chunk.get("usage", {})
-                        if usage_chunk:
-                            input_tokens = usage_chunk.get("prompt_tokens", input_tokens)
-                            output_tokens = usage_chunk.get("completion_tokens", output_tokens)
-                    except Exception:
-                        pass
+                    # Читаем SSE стриминг полностью (async)
+                    import json as _json
+                    text = ""
+                    input_tokens = 0
+                    output_tokens = 0
+                    async for line in resp.aiter_lines():
+                        line = line.strip()
+                        if not line or not line.startswith("data:"):
+                            continue
+                        data_str = line[5:].strip()
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            chunk = _json.loads(data_str)
+                            delta = chunk.get("choices",[{}])[0].get("delta",{}).get("content","")
+                            if delta:
+                                text += delta
+                            usage_chunk = chunk.get("usage", {})
+                            if usage_chunk:
+                                input_tokens = usage_chunk.get("prompt_tokens", input_tokens)
+                                output_tokens = usage_chunk.get("completion_tokens", output_tokens)
+                        except Exception:
+                            pass
                 data = {}
                 usage = {"prompt_tokens": input_tokens or len(text)//4, "completion_tokens": output_tokens or len(text)//4}
                 input_tokens  = usage.get("prompt_tokens", 0)
