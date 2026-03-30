@@ -39,7 +39,11 @@ from utils.logger import logger
 
 # OmniRoute конфиг
 OMNI_URL     = os.environ.get("OMNI_URL", "http://localhost:20128/v1")
-OMNI_API_KEY = os.environ.get("OMNI_API_KEY", "sk-fb8573e9682d98eb-s6c8zf-386b858c")
+# API ключ: из окружения -> конфига -> дефолт (универсальный)
+OMNI_API_KEY = os.environ.get(
+    "OMNI_API_KEY",
+    os.environ.get("IIS_API_KEY", "sk-fb8573e9682d98eb-s6c8zf-386b858c")
+)
 OMNI_MODEL   = os.environ.get("OMNI_MODEL", "kr/claude-sonnet-4.5")
 
 MODELS = {
@@ -52,12 +56,22 @@ from core.tools import AgentTools, SYSTEM_PROMPT_WITH_TOOLS
 
 SYSTEM_PROMPT = SYSTEM_PROMPT_WITH_TOOLS
 
-def get_system_prompt(model_id: str) -> str:
-    """Возвращает системный промпт с информацией о модели."""
+def get_system_prompt(model_id: str, conversation_length: int = 0) -> str:
+    """Возвращает системный промпт с информацией о модели и контексте сессии."""
     from datetime import datetime
     
     model_info = MODELS.get(model_id, MODELS.get(DEFAULT_MODEL))
     model_name = model_info.get("name", "Claude")
+    
+    # Определяем контекст сессии
+    session_context = ""
+    if conversation_length > 0:
+        session_context = f"""
+КОНТЕКСТ СЕССИИ:
+Ты помогаешь этому пользователю уже {conversation_length} сообщений в этой сессии.
+Помни предыдущие ответы и продолжай работу, если пользователь просит что-то связанное.
+Если пользователь говорит "продолжай", "доделай", "улучши" - ты понимаешь что нужно продолжить предыдущую работу.
+Не задавай вопросы которые уже обсуждались в этой сессии."""
     
     # Базовый промпт с информацией о текущей модели
     base_prompt = f"""Ты {model_name} - AI ассистент от Anthropic.
@@ -67,12 +81,22 @@ def get_system_prompt(model_id: str) -> str:
 
 Ты помогаешь пользователям с:
 - Разработкой кода
-- Анализом текста
+- Анализом проектов
 - Планированием задач
 - Отладкой проблем
+- Написанием документации
 - И многим другим
 
-Когда пользователь спросит какая ты версия, модель или кто ты - всегда отвечай что ты {model_name}, а не Kiro или другие названия.
+ИНСТРУКЦИИ:
+1. ВСЕГДА давай полные, завершённые ответы (не прерывайся)
+2. Если нужно показать код - выдавай весь код целиком
+3. Если пользователь просит анализ - дай подробный анализ И рекомендации
+4. Если просит создать проект - дай полный план И код
+5. Когда завершаешь задачу - спроси: "Что дальше?" или "Что улучшить?"
+6. Помни контекст этой сессии и не повторяй то, что уже делал
+7. Когда пользователь спросит про версию - говори что ты {model_name}, не Kiro
+
+{session_context}
 
 {SYSTEM_PROMPT}"""
     
@@ -227,7 +251,9 @@ class IIStudioAgent:
         self.session.add_user_message(message)
 
         # Строим messages с системным промптом для текущей модели
-        system_prompt = get_system_prompt(model_id)
+        # Передаём длину разговора чтобы AI знала контекст
+        conv_length = len([m for m in self.session.messages if m.role in ("user", "assistant")])
+        system_prompt = get_system_prompt(model_id, conv_length)
         messages = [{"role": "system", "content": system_prompt}]
         for msg in self.session.messages[-20:]:
             if msg.role in ("user", "assistant"):
@@ -336,8 +362,9 @@ class IIStudioAgent:
         model_info = MODELS.get(model_id, MODELS[DEFAULT_MODEL])
         api_model = model_info["model_id"]
 
-        # Системный промпт с информацией о текущей модели
-        system_prompt = get_system_prompt(model_id)
+        # Системный промпт с информацией о текущей модели и контексте сессии
+        conv_length = len([m for m in self.session.messages if m.role in ("user", "assistant")])
+        system_prompt = get_system_prompt(model_id, conv_length)
         messages = [{"role": "system", "content": system_prompt}]
         for msg in self.session.messages[-20:]:
             if msg.role in ("user", "assistant"):
